@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
 import { useAvatarPreview } from '@/context/AvatarPreviewContext';
 import { compressImage } from '@/lib/imageUtils';
+import { formatInternationalPhone } from '@/lib/phoneUtils';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -16,13 +17,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   const { updateProfile } = useChat();
   const { openAvatarPreview } = useAvatarPreview();
 
-  const [name, setName] = useState(user?.name || user?.displayName || '');
-  const [phone, setPhone] = useState(user?.phoneNumber || user?.phone || '');
-  const [bio, setBio] = useState(user?.statusText || user?.bio || 'Available · Connected via NexusChat');
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || user?.photoURL || '');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync state whenever modal opens or user updates
+  useEffect(() => {
+    if (isOpen && user) {
+      setName(user.name || user.displayName || '');
+      setPhone(user.phoneNumber || user.phone || '');
+      setBio(user.statusText || user.bio || 'Available · Connected via NexusChat');
+      setAvatarUrl(user.avatarUrl || user.photoURL || '');
+      setErrorMessage(null);
+      setSuccessMsg(false);
+    }
+  }, [isOpen, user]);
 
   if (!isOpen) return null;
 
@@ -48,33 +62,47 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    setErrorMessage(null);
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setErrorMessage('Display Name is required.');
+      return;
+    }
+
+    // Flexible international phone formatting (+91 default prefix if no leading '+')
+    let formattedPhone = phone.trim();
+    if (formattedPhone) {
+      formattedPhone = formatInternationalPhone(formattedPhone);
+    }
 
     setIsSaving(true);
     try {
       const profileUpdates = {
-        name: name.trim(),
-        displayName: name.trim(),
-        phone: phone.trim(),
-        phoneNumber: phone.trim(),
-        bio: bio.trim(),
-        statusText: bio.trim(),
-        avatarUrl,
-        photoURL: avatarUrl,
+        name: trimmedName,
+        displayName: trimmedName,
+        phone: formattedPhone,
+        phoneNumber: formattedPhone,
+        bio: bio.trim() || 'Available · Connected via NexusChat',
+        statusText: bio.trim() || 'Available · Connected via NexusChat',
+        avatarUrl: avatarUrl.trim(),
+        photoURL: avatarUrl.trim(),
       };
 
-      // Immediately sync with Firestore users/${user.uid} and Firebase Auth state
+      // 1. Save cleanly to Firestore users/${user.uid} and update Firebase Auth profile
       await updateProfileData(profileUpdates);
+      
+      // 2. Sync ChatContext local operative state
       await updateProfile(profileUpdates);
 
       setSuccessMsg(true);
       setTimeout(() => {
         setSuccessMsg(false);
         onClose();
-      }, 900);
-    } catch (err) {
+      }, 750);
+    } catch (err: any) {
       console.error('Failed to update profile:', err);
-      alert('Failed to save profile changes. Please try again.');
+      setErrorMessage(err?.message || 'Failed to save profile changes. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -97,6 +125,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
         </div>
+
+        {/* Error Alert */}
+        {errorMessage && (
+          <div className="p-3 rounded-2xl bg-rose-500/15 text-rose-300 text-xs flex items-center gap-2 border border-rose-500/30 animate-in fade-in">
+            <span className="material-symbols-outlined text-base shrink-0">error</span>
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSave} className="flex flex-col gap-4">
@@ -173,24 +209,36 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             />
           </div>
 
-          {/* Phone Number Field */}
+          {/* Flexible International Phone Field */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-mono text-slate-400 uppercase tracking-wider">
-              Phone Number <span className="text-cyan-400">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-mono text-slate-400 uppercase tracking-wider">
+                Phone Number
+              </label>
+              <span className="text-[10px] font-mono text-cyan-400">
+                Default prefix: +91 (India)
+              </span>
+            </div>
             <div className="relative flex items-center">
               <span className="material-symbols-outlined absolute left-3.5 text-slate-500 pointer-events-none text-base">
                 call
               </span>
               <input
                 type="tel"
-                required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 (555) 019-2834"
+                onBlur={() => {
+                  if (phone.trim()) {
+                    setPhone(formatInternationalPhone(phone));
+                  }
+                }}
+                placeholder="+91 98765 43210 (or any international format)"
                 className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-white font-mono placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
               />
             </div>
+            <span className="text-[11px] text-slate-500">
+              Enter any local or international number. Numbers without a country code will default to +91.
+            </span>
           </div>
 
           {/* Bio / Status Text */}

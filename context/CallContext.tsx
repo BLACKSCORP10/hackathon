@@ -28,6 +28,8 @@ interface CallContextType {
   activeCall: FirestoreCall | null;
   incomingCall: FirestoreCall | null;
   callFrame: DailyCall | null;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
   callDuration: number;
   isMuted: boolean;
   isVideoOff: boolean;
@@ -108,12 +110,22 @@ class RingtonePlayer {
 
 const ringtone = new RingtonePlayer();
 
+const ICE_SERVERS: RTCConfiguration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+  ],
+};
+
 export function CallProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   const [activeCall, setActiveCall] = useState<FirestoreCall | null>(null);
   const [incomingCall, setIncomingCall] = useState<FirestoreCall | null>(null);
   const [callFrame, setCallFrame] = useState<DailyCall | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -121,6 +133,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [streamError, setStreamError] = useState<string | null>(null);
 
   const callFrameRef = useRef<DailyCall | null>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
   const activeCallUnsubRef = useRef<(() => void) | null>(null);
   const durationTimerRef = useRef<any>(null);
 
@@ -144,7 +158,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (!snapshot.empty) {
           const docData = snapshot.docs[0];
           const callData = { id: docData.id, ...docData.data() } as FirestoreCall;
-          // Only pop up incoming notification if not already in an active call
           if (!activeCall) {
             setIncomingCall(callData);
             ringtone.start();
@@ -195,6 +208,27 @@ export function CallProvider({ children }: { children: ReactNode }) {
       activeCallUnsubRef.current = null;
     }
 
+    // Stop all local media tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch (e) {}
+      });
+      localStreamRef.current = null;
+    }
+    setLocalStream(null);
+    setRemoteStream(null);
+
+    // Close WebRTC RTCPeerConnection
+    if (peerConnectionRef.current) {
+      try {
+        peerConnectionRef.current.close();
+      } catch (e) {}
+      peerConnectionRef.current = null;
+    }
+
+    // Destroy Daily Call Frame if active
     if (callFrameRef.current) {
       try {
         callFrameRef.current.leave().catch(() => {});
@@ -219,7 +253,34 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setStreamError(null);
   }, []);
 
-  // 2. Start Call (Caller Creates Daily room & Firestore Call document)
+  // Helper to initialize local user media stream
+  const initLocalMedia = async (type: 'audio' | 'video'): Promise<MediaStream | null> => {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        return null;
+      }
+      const constraints: MediaStreamConstraints = {
+        audio: true,
+        video:
+          type === 'video'
+            ? {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'user',
+              }
+            : false,
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      return stream;
+    } catch (err: any) {
+      console.warn('getUserMedia media notice:', err);
+      return null;
+    }
+  };
+
+  // 2. Start Call (Caller Creates room & Firestore Call document)
   const startCall = async (
     targetUser: { uid: string; name: string; avatarUrl: string },
     type: 'audio' | 'video'
@@ -228,6 +289,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
     cleanUpCallResources();
 
     try {
+      // Initialize local media stream
+      const stream = await initLocalMedia(type);
+
       const callDocRef = doc(collection(db, 'calls'));
       const callId = callDocRef.id;
       const roomName = `nexus-${callId.slice(0, 10).toLowerCase()}`;
@@ -251,6 +315,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         console.warn('Daily room initialization notice, using standard room URL:', err);
+      }
+
+      // Initialize WebRTC RTCPeerConnection
+      try {
+        const pc = new RTCPeerConnection(ICE_SERVERS);
+        peerConnectionRef.current = pc;
+
+        if (stream) {
+          stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+        }
+
+        pc.ontrack = (event) => {
+          if (event.streams && event.streams[0]) {
+            setRemoteStream(event.streams[0]);
+          }
+        };
+      } catch (pcErr) {
+        console.warn('PeerConnection init notice:', pcErr);
       }
 
       const initialCallData: FirestoreCall = {
@@ -286,7 +368,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       });
     } catch (err: any) {
-      console.error('Error starting Daily call:', err);
+      console.error('Error starting call:', err);
       setStreamError(err.message || 'Could not initiate secure call');
       cleanUpCallResources();
     }
@@ -301,12 +383,33 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setIncomingCall(null);
 
     try {
+      // Initialize local media stream
+      const stream = await initLocalMedia(callDocData.type);
+
       const callDocRef = doc(db, 'calls', callDocData.id);
 
       await updateDoc(callDocRef, {
         status: 'connected',
         connectedAt: serverTimestamp(),
       });
+
+      // Initialize WebRTC RTCPeerConnection
+      try {
+        const pc = new RTCPeerConnection(ICE_SERVERS);
+        peerConnectionRef.current = pc;
+
+        if (stream) {
+          stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+        }
+
+        pc.ontrack = (event) => {
+          if (event.streams && event.streams[0]) {
+            setRemoteStream(event.streams[0]);
+          }
+        };
+      } catch (pcErr) {
+        console.warn('PeerConnection receiver init notice:', pcErr);
+      }
 
       const updatedCall: FirestoreCall = {
         ...callDocData,
@@ -326,7 +429,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       });
     } catch (err: any) {
-      console.error('Error accepting Daily call:', err);
+      console.error('Error accepting call:', err);
       setStreamError(err.message || 'Error connecting to call');
       cleanUpCallResources();
     }
@@ -337,7 +440,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (!activeCall || !activeCall.roomUrl) return null;
 
     try {
-      // If frame already exists, destroy previous
       if (callFrameRef.current) {
         try {
           await callFrameRef.current.leave();
@@ -347,29 +449,28 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Create Daily Call Frame embedded into container
       const frame = DailyIframe.createFrame(container, {
         iframeStyle: {
           width: '100%',
           height: '100%',
           border: '0',
           borderRadius: '1.5rem',
-          backgroundColor: '#0b0e14',
+          backgroundColor: '#020617',
         },
-        showLeaveButton: true,
+        showLeaveButton: false,
         showFullscreenButton: true,
         showUserNameChangeUI: false,
         theme: {
           colors: {
-            accent: '#38bdf8',
-            accentText: '#080c14',
-            background: '#0b0e14',
-            backgroundAccent: '#171d2b',
-            baseText: '#f1f5f9',
-            border: '#2a3447',
-            mainAreaBg: '#080c14',
-            mainAreaBgAccent: '#101726',
-            mainAreaText: '#f1f5f9',
+            accent: '#6366f1',
+            accentText: '#ffffff',
+            background: '#020617',
+            backgroundAccent: '#0f172a',
+            baseText: '#f8fafc',
+            border: '#1e293b',
+            mainAreaBg: '#020617',
+            mainAreaBgAccent: '#0f172a',
+            mainAreaText: '#f8fafc',
             supportiveText: '#94a3b8',
           },
         },
@@ -378,7 +479,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
       callFrameRef.current = frame;
       setCallFrame(frame);
 
-      // Daily Event Listeners
       frame.on('joined-meeting', () => {
         setIsVideoOff(activeCall.type === 'audio');
         setIsMuted(false);
@@ -397,10 +497,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
       frame.on('camera-error', (event: DailyEventObject | undefined) => {
         console.warn('Daily camera error:', event);
-        setStreamError('Camera or microphone permissions denied or unavailable');
       });
 
-      // Join the Daily Room
       await frame.join({
         url: activeCall.roomUrl,
         userName: user?.name || user?.username || 'Nexus Operative',
@@ -410,8 +508,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
       return frame;
     } catch (err: any) {
-      console.error('Error mounting Daily frame:', err);
-      setStreamError(err.message || 'Failed to initialize Daily video call');
+      console.warn('Daily frame mount notice:', err);
       return null;
     }
   };
@@ -478,25 +575,35 @@ export function CallProvider({ children }: { children: ReactNode }) {
     cleanUpCallResources();
   };
 
-  // 7. SDK Media Controls
+  // 7. SDK & WebRTC Media Controls
   const toggleMute = () => {
-    if (callFrameRef.current) {
-      const nextState = !isMuted;
-      callFrameRef.current.setLocalAudio(!nextState);
-      setIsMuted(nextState);
-    } else {
-      setIsMuted(!isMuted);
+    const nextState = !isMuted;
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = isMuted; // inverted since isMuted is current state
+      });
     }
+    if (callFrameRef.current) {
+      try {
+        callFrameRef.current.setLocalAudio(!nextState);
+      } catch (e) {}
+    }
+    setIsMuted(nextState);
   };
 
   const toggleVideo = () => {
-    if (callFrameRef.current) {
-      const nextState = !isVideoOff;
-      callFrameRef.current.setLocalVideo(!nextState);
-      setIsVideoOff(nextState);
-    } else {
-      setIsVideoOff(!isVideoOff);
+    const nextState = !isVideoOff;
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach((track) => {
+        track.enabled = isVideoOff; // inverted since isVideoOff is current state
+      });
     }
+    if (callFrameRef.current) {
+      try {
+        callFrameRef.current.setLocalVideo(!nextState);
+      } catch (e) {}
+    }
+    setIsVideoOff(nextState);
   };
 
   const toggleScreenShare = async () => {
@@ -520,6 +627,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
         activeCall,
         incomingCall,
         callFrame,
+        localStream,
+        remoteStream,
         callDuration,
         isMuted,
         isVideoOff,

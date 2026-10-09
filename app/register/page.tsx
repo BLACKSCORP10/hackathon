@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
+import { formatInternationalPhone } from '@/lib/phoneUtils';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,17 +44,18 @@ export default function RegisterPage() {
       return;
     }
 
-    const trimmedPhone = phoneNumber.trim();
-    const digitCount = trimmedPhone.replace(/\D/g, '').length;
-    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
-
+    let trimmedPhone = phoneNumber.trim();
     if (!trimmedPhone) {
       setError('Phone number is mandatory for registration.');
       return;
     }
 
-    if (!phoneRegex.test(trimmedPhone) || digitCount < 7) {
-      setError('Please enter a valid phone number with country/area code (e.g. +1 555-019-2834).');
+    // Normalize phone number (prefix with +91 if missing)
+    trimmedPhone = formatInternationalPhone(trimmedPhone);
+    const digitCount = trimmedPhone.replace(/\D/g, '').length;
+
+    if (digitCount < 6) {
+      setError('Please enter a valid phone number (e.g. +91 98765 43210 or +1 555-019-2834).');
       return;
     }
 

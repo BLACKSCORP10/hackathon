@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { FirestoreStory, createFirestoreStory, deleteFirestoreStory } from '@/lib/db';
@@ -9,17 +9,28 @@ import { BottomNav } from '@/components/navigation/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { compressImage } from '@/lib/imageUtils';
 
+interface StoryGroup {
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  stories: FirestoreStory[];
+}
+
 export default function StoriesMomentsPage() {
   const { user } = useAuth();
   const [stories, setStories] = useState<FirestoreStory[]>([]);
-  const [selectedStory, setSelectedStory] = useState<FirestoreStory | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<StoryGroup | null>(null);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [slideProgress, setSlideProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
   const [isPosting, setIsPosting] = useState(false);
   const [newCaption, setNewCaption] = useState('');
   const [newMediaDataUrl, setNewMediaDataUrl] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [storyProgress, setStoryProgress] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const SLIDE_DURATION_MS = 5000;
 
   // 1. Real-Time Firestore Stories Listener
   useEffect(() => {
@@ -39,23 +50,105 @@ export default function StoriesMomentsPage() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Story Viewer Progress Timer
-  useEffect(() => {
-    let timer: any;
-    if (selectedStory) {
-      setStoryProgress(0);
-      timer = setInterval(() => {
-        setStoryProgress((prev) => {
-          if (prev >= 100) {
-            setSelectedStory(null);
-            return 0;
-          }
-          return prev + 2;
+  // 2. Aggregate / Group multiple stories by User
+  const storyGroups = useMemo<StoryGroup[]>(() => {
+    const groupMap = new Map<string, StoryGroup>();
+
+    stories.forEach((story) => {
+      const existing = groupMap.get(story.userId);
+      if (existing) {
+        existing.stories.push(story);
+      } else {
+        groupMap.set(story.userId, {
+          userId: story.userId,
+          userName: story.userName,
+          userAvatar: story.userAvatar,
+          stories: [story],
         });
-      }, 100);
-    }
+      }
+    });
+
+    return Array.from(groupMap.values());
+  }, [stories]);
+
+  // 3. Timed segment auto-advancing logic (5s per slide)
+  useEffect(() => {
+    if (!selectedGroup) return;
+
+    setSlideProgress(0);
+    const intervalTime = 50;
+    const step = (intervalTime / SLIDE_DURATION_MS) * 100;
+
+    const timer = setInterval(() => {
+      if (isPaused) return;
+
+      setSlideProgress((prev) => {
+        if (prev >= 100) {
+          if (currentSlideIndex < selectedGroup.stories.length - 1) {
+            setCurrentSlideIndex((curr) => curr + 1);
+            return 0;
+          } else {
+            const currentGroupIndex = storyGroups.findIndex((g) => g.userId === selectedGroup.userId);
+            if (currentGroupIndex >= 0 && currentGroupIndex < storyGroups.length - 1) {
+              setSelectedGroup(storyGroups[currentGroupIndex + 1]);
+              setCurrentSlideIndex(0);
+              return 0;
+            } else {
+              setSelectedGroup(null);
+              return 0;
+            }
+          }
+        }
+        return prev + step;
+      });
+    }, intervalTime);
+
     return () => clearInterval(timer);
-  }, [selectedStory]);
+  }, [selectedGroup, currentSlideIndex, isPaused, storyGroups]);
+
+  const handleOpenGroup = (group: StoryGroup, initialIndex = 0) => {
+    setSelectedGroup(group);
+    setCurrentSlideIndex(initialIndex);
+    setSlideProgress(0);
+    setIsPaused(false);
+  };
+
+  const handlePrevSlide = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!selectedGroup) return;
+
+    if (currentSlideIndex > 0) {
+      setCurrentSlideIndex((prev) => prev - 1);
+      setSlideProgress(0);
+    } else {
+      const currentGroupIndex = storyGroups.findIndex((g) => g.userId === selectedGroup.userId);
+      if (currentGroupIndex > 0) {
+        const prevGroup = storyGroups[currentGroupIndex - 1];
+        setSelectedGroup(prevGroup);
+        setCurrentSlideIndex(prevGroup.stories.length - 1);
+        setSlideProgress(0);
+      }
+    }
+  };
+
+  const handleNextSlide = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!selectedGroup) return;
+
+    if (currentSlideIndex < selectedGroup.stories.length - 1) {
+      setCurrentSlideIndex((prev) => prev + 1);
+      setSlideProgress(0);
+    } else {
+      const currentGroupIndex = storyGroups.findIndex((g) => g.userId === selectedGroup.userId);
+      if (currentGroupIndex >= 0 && currentGroupIndex < storyGroups.length - 1) {
+        setSelectedGroup(storyGroups[currentGroupIndex + 1]);
+        setCurrentSlideIndex(0);
+        setSlideProgress(0);
+      } else {
+        setSelectedGroup(null);
+      }
+    }
+  };
 
   // Handle Real File Selection for Story with Canvas compression
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,18 +201,7 @@ export default function StoriesMomentsPage() {
     }
   };
 
-  const handleDeleteStory = async (storyId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Delete this moment permanently?')) return;
-    try {
-      await deleteFirestoreStory(storyId);
-      if (selectedStory?.id === storyId) {
-        setSelectedStory(null);
-      }
-    } catch (err) {
-      console.error('Error deleting story:', err);
-    }
-  };
+  const currentStory = selectedGroup?.stories[currentSlideIndex];
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
@@ -155,8 +237,8 @@ export default function StoriesMomentsPage() {
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-100">My Status</span>
-              <span className="text-xs text-slate-400">Tap + or camera to share 24h photo moment</span>
+              <span className="text-sm font-bold text-slate-100">Broadcast Moment</span>
+              <span className="text-xs text-slate-400">Share a 24-hour photo or message to your network</span>
             </div>
           </div>
           <button
@@ -169,16 +251,16 @@ export default function StoriesMomentsPage() {
           </button>
         </section>
 
-        {/* Live Ephemeral Updates Feed */}
+        {/* Grouped Live Moments Feed */}
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
             <span className="font-mono text-xs text-slate-400 uppercase tracking-wider">
-              Live Ephemeral Updates ({stories.length})
+              Active Operative Moments ({storyGroups.length} nodes · {stories.length} stories)
             </span>
             <span className="text-[11px] text-emerald-400 font-mono">24h Auto-Expiry</span>
           </div>
 
-          {stories.length === 0 ? (
+          {storyGroups.length === 0 ? (
             <div className="py-14 flex flex-col items-center justify-center gap-3 text-slate-500 bg-slate-900/40 backdrop-blur-xl rounded-3xl p-6 border border-white/10 text-center shadow-xl">
               <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                 <span className="material-symbols-outlined text-3xl">auto_stories</span>
@@ -198,51 +280,48 @@ export default function StoriesMomentsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {stories.map((story) => {
-                const isOwn = story.userId === user?.uid;
+              {storyGroups.map((group) => {
+                const latestStory = group.stories[0];
+                const isOwn = group.userId === user?.uid;
+
                 return (
                   <div
-                    key={story.id}
-                    onClick={() => setSelectedStory(story)}
+                    key={group.userId}
+                    onClick={() => handleOpenGroup(group)}
                     className="relative h-64 rounded-3xl overflow-hidden shadow-xl border border-white/10 group cursor-pointer bg-slate-900"
                   >
                     <img
-                      alt={story.caption}
+                      alt={latestStory.caption}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      src={story.mediaUrl}
+                      src={latestStory.mediaUrl}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/50 pointer-events-none" />
 
                     {/* Sender Avatar & Name */}
                     <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-full p-0.5 bg-gradient-to-tr from-indigo-500 to-pink-500 shadow-md flex-shrink-0">
+                        <div className="relative w-8 h-8 rounded-full p-0.5 bg-gradient-to-tr from-indigo-500 to-pink-500 shadow-md flex-shrink-0">
                           <img
-                            alt={story.userName}
+                            alt={group.userName}
                             className="w-full h-full rounded-full object-cover bg-slate-800"
-                            src={story.userAvatar}
+                            src={group.userAvatar}
                           />
                         </div>
-                        <span className="text-xs text-white font-medium drop-shadow truncate">{story.userName}</span>
+                        <span className="text-xs text-white font-semibold drop-shadow truncate">
+                          {group.userName}
+                        </span>
                       </div>
 
-                      {/* Delete option for own stories */}
-                      {isOwn && (
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeleteStory(story.id, e)}
-                          className="w-7 h-7 rounded-full bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center transition-colors shadow-md"
-                          title="Delete my story"
-                        >
-                          <span className="material-symbols-outlined text-sm">delete</span>
-                        </button>
-                      )}
+                      {/* Multi-story badge count */}
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-600/90 text-white font-mono text-[10px] font-bold shadow-md border border-white/10">
+                        {group.stories.length} {group.stories.length === 1 ? 'moment' : 'moments'}
+                      </span>
                     </div>
 
                     {/* Caption */}
                     <div className="absolute bottom-3 left-3 right-3 z-10">
                       <p className="text-xs text-white/95 line-clamp-2 drop-shadow-md font-medium leading-snug">
-                        {story.caption}
+                        {latestStory.caption}
                       </p>
                     </div>
                   </div>
@@ -320,55 +399,90 @@ export default function StoriesMomentsPage() {
         </div>
       )}
 
-      {/* Story Viewer Modal */}
-      {selectedStory && (
+      {/* Instagram-Style Multi-Segment Timed Story Viewer Overlay */}
+      {selectedGroup && currentStory && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl animate-fade-in"
-          onClick={() => setSelectedStory(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/95 backdrop-blur-2xl animate-fade-in select-none"
+          onClick={() => setSelectedGroup(null)}
         >
           <div
-            className="relative w-full max-w-sm h-[580px] bg-slate-900/90 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between p-4 border border-white/10 backdrop-blur-xl"
+            className="relative w-full max-w-sm h-[90vh] max-h-[640px] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between p-4 border border-white/10 backdrop-blur-2xl"
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={() => setIsPaused(true)}
+            onMouseUp={() => setIsPaused(false)}
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
           >
-            {/* Top Status Progress Bar */}
-            <div className="relative z-10 flex flex-col gap-2">
-              <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  style={{ width: `${storyProgress}%` }}
-                  className="h-full bg-gradient-to-r from-indigo-400 to-violet-400 rounded-full transition-all duration-100 ease-linear shadow-[0_0_8px_rgba(129,140,248,0.8)]"
-                />
+            {/* Top Multi-Segment Timed Progress Bars */}
+            <div className="relative z-20 flex flex-col gap-2.5">
+              <div className="w-full flex items-center gap-1.5">
+                {selectedGroup.stories.map((_, index) => {
+                  let fill = 0;
+                  if (index < currentSlideIndex) fill = 100;
+                  else if (index === currentSlideIndex) fill = slideProgress;
+                  else fill = 0;
+
+                  return (
+                    <div
+                      key={index}
+                      className="flex-1 h-1 bg-white/25 rounded-full overflow-hidden"
+                    >
+                      <div
+                        style={{ width: `${fill}%` }}
+                        className="h-full bg-white rounded-full transition-all duration-75 ease-linear shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
+              {/* Story Author Header */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <img
-                    alt={selectedStory.userName}
-                    className="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-400 bg-slate-800"
-                    src={selectedStory.userAvatar}
+                    alt={selectedGroup.userName}
+                    className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-400 bg-slate-800 shadow-md"
+                    src={selectedGroup.userAvatar}
                   />
                   <div className="flex flex-col">
-                    <span className="font-label-md text-white text-xs font-semibold drop-shadow">
-                      {selectedStory.userName}
+                    <span className="text-white text-xs font-bold drop-shadow-md">
+                      {selectedGroup.userName}
                     </span>
-                    <span className="text-[10px] text-indigo-200 drop-shadow font-mono">24h Ephemeral Moment</span>
+                    <span className="text-[10px] text-indigo-200 drop-shadow font-mono">
+                      {currentSlideIndex + 1} of {selectedGroup.stories.length} · 24h Ephemeral
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {selectedStory.userId === user?.uid && (
+                <div className="flex items-center gap-1.5">
+                  {selectedGroup.userId === user?.uid && (
                     <button
                       type="button"
-                      onClick={(e) => handleDeleteStory(selectedStory.id, e)}
-                      className="text-white hover:text-rose-400 p-1.5 rounded-full bg-black/50 backdrop-blur-md transition-colors"
-                      title="Delete story"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (confirm('Delete this moment permanently?')) {
+                          await deleteFirestoreStory(currentStory.id);
+                          if (selectedGroup.stories.length <= 1) {
+                            setSelectedGroup(null);
+                          } else {
+                            setSelectedGroup({
+                              ...selectedGroup,
+                              stories: selectedGroup.stories.filter((s) => s.id !== currentStory.id),
+                            });
+                            setCurrentSlideIndex((prev) => Math.max(0, prev - 1));
+                          }
+                        }
+                      }}
+                      className="text-white hover:text-rose-400 p-1.5 rounded-full bg-black/40 backdrop-blur-md transition-colors"
+                      title="Delete Story"
                     >
                       <span className="material-symbols-outlined text-base">delete</span>
                     </button>
                   )}
                   <button
                     type="button"
-                    onClick={() => setSelectedStory(null)}
-                    className="text-white hover:text-white/80 p-1.5 rounded-full bg-black/50 backdrop-blur-md transition-colors"
+                    onClick={() => setSelectedGroup(null)}
+                    className="text-white hover:text-white/80 p-1.5 rounded-full bg-black/40 backdrop-blur-md transition-colors"
                   >
                     <span className="material-symbols-outlined text-lg">close</span>
                   </button>
@@ -376,45 +490,59 @@ export default function StoriesMomentsPage() {
               </div>
             </div>
 
-            {/* Media Image Content */}
+            {/* Background Story Image / Media */}
             <img
-              alt="Story media"
+              alt="Story Media"
               className="absolute inset-0 w-full h-full object-cover"
-              src={selectedStory.mediaUrl}
+              src={currentStory.mediaUrl}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/50 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 pointer-events-none" />
 
-            {/* Caption & Quick Reaction Bar */}
-            <div className="relative z-10 flex flex-col gap-3">
-              <p className="text-white text-sm font-medium drop-shadow-lg px-1 leading-snug">{selectedStory.caption}</p>
+            {/* Left & Right Interactive Tap Navigation Zones */}
+            <div
+              className="absolute inset-y-16 left-0 w-1/3 z-10 cursor-pointer"
+              onClick={handlePrevSlide}
+              title="Previous Story"
+            />
+            <div
+              className="absolute inset-y-16 right-0 w-2/3 z-10 cursor-pointer"
+              onClick={handleNextSlide}
+              title="Next Story"
+            />
 
-              {/* Quick Emojis */}
-              <div className="flex items-center justify-around bg-black/50 backdrop-blur-md rounded-2xl p-1.5 border border-white/10">
-                {['❤️', '🔥', '👏', '⚡', '🚀', '😍'].map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => alert(`Reacted with ${emoji}`)}
-                    className="text-lg hover:scale-125 transition-transform active:scale-95"
-                  >
-                    {emoji}
-                  </button>
-                ))}
+            {/* Bottom Caption & Interactive Reply Bar */}
+            <div className="relative z-20 flex flex-col gap-3">
+              {currentStory.caption && (
+                <p className="text-white text-sm font-medium drop-shadow-lg leading-snug px-1">
+                  {currentStory.caption}
+                </p>
+              )}
+
+              {/* Navigation controls hint */}
+              <div className="flex items-center justify-between px-1 text-[11px] text-white/60 font-mono">
+                <span onClick={handlePrevSlide} className="cursor-pointer hover:text-white">
+                  ← Prev
+                </span>
+                <span>Tap right to advance</span>
+                <span onClick={handleNextSlide} className="cursor-pointer hover:text-white">
+                  Next →
+                </span>
               </div>
 
+              {/* Quick Emojis & Reply */}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Send a private reply..."
-                  className="flex-1 bg-white/15 backdrop-blur-md text-white placeholder:text-white/70 text-xs px-3.5 py-2.5 rounded-full border border-white/20 focus:outline-none focus:border-indigo-400"
+                  placeholder="Send a reply..."
+                  className="flex-1 bg-white/20 backdrop-blur-md text-white placeholder:text-white/70 text-xs px-3.5 py-2.5 rounded-full border border-white/20 focus:outline-none focus:border-indigo-400"
                 />
                 <button
                   type="button"
                   onClick={() => {
-                    alert('Reply transmitted.');
-                    setSelectedStory(null);
+                    alert('Moment reply transmitted.');
+                    setSelectedGroup(null);
                   }}
-                  className="w-9 h-9 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-600/50 active:scale-95 flex-shrink-0 transition-all"
+                  className="w-9 h-9 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg active:scale-95 transition-all flex-shrink-0"
                 >
                   <span className="material-symbols-outlined text-sm">send</span>
                 </button>
