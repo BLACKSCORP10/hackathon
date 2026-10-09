@@ -24,10 +24,12 @@ export interface FirestoreUser {
   id: string;
   uid: string;
   name: string;
+  displayName?: string;
   username: string;
   email: string;
   phone?: string;
   avatarUrl: string;
+  photoURL?: string;
   statusText?: string;
   bio?: string;
   statusEmoji?: string;
@@ -57,6 +59,7 @@ export interface FirestoreMessage {
     mimeType?: string;
   };
   status?: 'sent' | 'delivered' | 'read';
+  read?: boolean;
   reactions?: Record<string, number>;
   replyTo?: {
     id: string;
@@ -176,8 +179,8 @@ export async function syncFirestoreUser(user: Partial<FirestoreUser> & { uid: st
     email: user.email || '',
     phone: user.phone || '',
     avatarUrl: user.avatarUrl || defaultAvatar,
-    statusText: user.statusText || 'Quantum nodes syncing · Standby',
-    statusEmoji: user.statusEmoji || '⚡',
+    statusText: user.statusText || 'Available · Connected via NexusChat',
+    statusEmoji: user.statusEmoji || '💬',
     isOnline: true,
     role: user.role || 'Nexus Operative',
     lastSeen: serverTimestamp(),
@@ -266,6 +269,7 @@ export async function sendFirestoreMessage(
     mediaMeta: message.mediaMeta || null,
     replyTo: message.replyTo || null,
     status: message.status || 'delivered',
+    read: message.status === 'read' || false,
     reactions: {},
     createdAt: nowTimestamp,
     timestamp: nowTimestamp,
@@ -344,8 +348,8 @@ export async function markFirestoreMessagesAsRead(chatId: string, currentUserId:
     const snap = await getDocs(q);
 
     const updatePromises = snap.docs
-      .filter((d) => d.data().status !== 'read')
-      .map((d) => updateDoc(d.ref, { status: 'read' }));
+      .filter((d) => d.data().status !== 'read' || !d.data().read)
+      .map((d) => updateDoc(d.ref, { status: 'read', read: true }));
 
     await Promise.all(updatePromises);
   } catch (error) {
@@ -369,16 +373,36 @@ export async function addFirestoreReaction(chatId: string, messageId: string, em
 
 export async function updateFirestoreUserProfile(
   userId: string,
-  profile: { name?: string; bio?: string; statusText?: string; avatarUrl?: string; username?: string; phone?: string }
+  profile: {
+    name?: string;
+    displayName?: string;
+    bio?: string;
+    statusText?: string;
+    avatarUrl?: string;
+    photoURL?: string;
+    username?: string;
+    phone?: string;
+  }
 ): Promise<void> {
   try {
     const userRef = doc(db, 'users', userId);
     const updates: any = { ...profile, lastSeen: serverTimestamp() };
     if (profile.bio && !profile.statusText) updates.statusText = profile.bio;
+    if (profile.name && !profile.displayName) updates.displayName = profile.name;
+    if (profile.avatarUrl && !profile.photoURL) updates.photoURL = profile.avatarUrl;
+    if (profile.photoURL && !profile.avatarUrl) updates.avatarUrl = profile.photoURL;
+    if (profile.displayName && !profile.name) updates.name = profile.displayName;
+
     await updateDoc(userRef, updates);
   } catch (error) {
-    console.error('Error updating user profile in Firestore:', error);
-    throw error;
+    console.warn('updateDoc failed, attempting setDoc merge fallback:', error);
+    try {
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, { ...profile, lastSeen: serverTimestamp() }, { merge: true });
+    } catch (retryErr) {
+      console.error('Error updating user profile in Firestore:', retryErr);
+      throw retryErr;
+    }
   }
 }
 

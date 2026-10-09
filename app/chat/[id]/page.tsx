@@ -135,9 +135,9 @@ export default function ActiveChatThreadPage() {
                 )}
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-mono text-[11px] text-emerald-400 truncate">
-                  Online · WebRTC & E2EE Active
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[11px] text-emerald-400 font-medium">
+                  Online
                 </span>
               </div>
             </div>
@@ -149,7 +149,7 @@ export default function ActiveChatThreadPage() {
               onClick={() => handleInitiateCall('audio')}
               aria-label="Start Audio Call"
               className="w-9 h-9 rounded-xl bg-slate-900/80 border border-white/10 flex items-center justify-center text-slate-300 active:scale-95 transition-all hover:bg-indigo-600 hover:text-white shadow-md"
-              title="Encrypted Audio Call (Open Relay TURN)"
+              title="Audio Call"
             >
               <span className="material-symbols-outlined text-[19px]">call</span>
             </button>
@@ -157,7 +157,7 @@ export default function ActiveChatThreadPage() {
               onClick={() => handleInitiateCall('video')}
               aria-label="Start Video Call"
               className="w-9 h-9 rounded-xl bg-slate-900/80 border border-white/10 flex items-center justify-center text-slate-300 active:scale-95 transition-all hover:bg-indigo-600 hover:text-white shadow-md"
-              title="Encrypted Video Call (Open Relay TURN)"
+              title="Video Call"
             >
               <span className="material-symbols-outlined text-[19px]">videocam</span>
             </button>
@@ -170,26 +170,10 @@ export default function ActiveChatThreadPage() {
             </button>
           </div>
         </div>
-
-        {/* Security E2EE Pill */}
-        <div className="flex items-center justify-center pt-0.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-md text-slate-400 font-mono text-[10px] border border-white/10 shadow-sm">
-            <span className="material-symbols-outlined text-[13px] text-emerald-400">lock</span>
-            <span>Deterministic 1-on-1 Room · Real-Time Firestore Sync · Gemini AI Supported</span>
-          </div>
-        </div>
       </header>
 
       {/* Main Message Stream */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4 flex flex-col gap-3.5">
-        {/* Date / System Encryption Marker */}
-        <div className="flex flex-col items-center gap-1 my-1">
-          <div className="px-3.5 py-1 rounded-full bg-slate-900/60 backdrop-blur-md text-slate-400 font-mono text-[11px] shadow-sm flex items-center gap-1.5 border border-white/10">
-            <span className="material-symbols-outlined text-[14px] text-indigo-400">verified_user</span>
-            <span>Messages & calls synchronized with sub-100ms Firestore latency</span>
-          </div>
-        </div>
-
         {/* Loading Spinner */}
         {isLoadingMessages ? (
           <div className="py-12 flex justify-center items-center text-slate-500 gap-2">

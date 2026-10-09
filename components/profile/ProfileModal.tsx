@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
 import { useAvatarPreview } from '@/context/AvatarPreviewContext';
+import { compressImage } from '@/lib/imageUtils';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   const { openAvatarPreview } = useAvatarPreview();
 
   const [name, setName] = useState(user?.name || '');
-  const [bio, setBio] = useState(user?.statusText || user?.bio || 'Quantum nodes syncing · Standby');
+  const [bio, setBio] = useState(user?.statusText || user?.bio || 'Available · Connected via NexusChat');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
@@ -24,17 +25,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
   if (!isOpen) return null;
 
-  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setAvatarUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, 800, 0.6);
+      setAvatarUrl(compressed.dataUrl);
+    } catch (err) {
+      console.warn('Avatar compression fallback:', err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setAvatarUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -126,7 +134,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                       user?.avatarUrl ||
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA',
                     username: user?.username || 'node',
-                    bio: bio || user?.statusText || 'Quantum nodes syncing · Standby',
+                    bio: bio || user?.statusText || 'Available · Connected via NexusChat',
                     statusText: 'Online · Verified Firebase Node',
                     isOnline: true,
                   })

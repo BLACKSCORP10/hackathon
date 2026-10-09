@@ -33,8 +33,17 @@ export const ChatList: React.FC = () => {
     { id: 'pinned', label: 'Pinned', icon: 'push_pin' },
   ];
 
-  // Other registered users excluding current authenticated user
-  const otherUsers = users.filter((u) => u.uid !== currentUser?.uid);
+  // Other registered users excluding current authenticated user, filtered by search query
+  const otherUsers = users
+    .filter((u) => u.uid !== currentUser?.uid)
+    .filter((u) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const displayName = (u.displayName || u.name || '').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      const username = (u.username || '').toLowerCase();
+      return displayName.includes(q) || email.includes(q) || username.includes(q);
+    });
 
   const handleStartChat = async (targetUser: FirestoreUser) => {
     try {

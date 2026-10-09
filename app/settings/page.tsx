@@ -7,6 +7,7 @@ import { useAvatarPreview } from '@/context/AvatarPreviewContext';
 import { TopHeader } from '@/components/navigation/TopHeader';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { ProfileModal } from '@/components/profile/ProfileModal';
+import { compressImage } from '@/lib/imageUtils';
 
 export default function SettingsPage() {
   const { user, logout, updateProfileData } = useAuth();
@@ -27,7 +28,7 @@ export default function SettingsPage() {
   const [readReceipts, setReadReceipts] = useState(true);
   const [lastSeenOption, setLastSeenOption] = useState('My Contacts');
   const [disappearingTimer, setDisappearingTimer] = useState('24 Hours');
-  const [customStatus, setCustomStatus] = useState(user?.statusText || '🚀 Shipping NexusChat v1.0 · Do Not Disturb');
+  const [customStatus, setCustomStatus] = useState(user?.statusText || '🚀 Available on NexusChat');
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const bgFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -47,23 +48,32 @@ export default function SettingsPage() {
       name: user?.name || 'Nexus Operative',
       avatarUrl: user?.avatarUrl || defaultAvatar,
       username: user?.username || user?.email?.split('@')[0] || 'node',
-      bio: user?.statusText || user?.bio || 'Quantum nodes syncing · Standby for transmissions',
+      bio: user?.statusText || user?.bio || 'Available · Connected via NexusChat',
       statusText: 'Online · Verified Firebase Node',
       isOnline: true,
     });
   };
 
-  const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setCustomChatImage(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const comp = await compressImage(file, 800, 0.6);
+      setCustomChatImage(comp.dataUrl);
+      setChatBackground('custom');
+    } catch (err) {
+      console.warn('Custom wallpaper compression fallback:', err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setCustomChatImage(reader.result);
+          setChatBackground('custom');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
   };
 
   return (
@@ -513,27 +523,6 @@ export default function SettingsPage() {
                 <span className="material-symbols-outlined text-[16px]">timer</span>
                 <span>{disappearingTimer}</span>
               </button>
-            </div>
-
-            {/* Identity Key Fingerprint */}
-            <div className={`rounded-2xl p-3.5 flex flex-col gap-1 border ${
-              theme === 'dark' ? 'bg-slate-950/60 border-white/5' : 'bg-slate-100 border-slate-200'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-indigo-400 text-[18px]">key</span>
-                  <span className={`text-xs font-medium ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
-                    Firebase Auth UID
-                  </span>
-                </div>
-                <span className="font-mono text-[10px] text-emerald-400 flex items-center gap-0.5">
-                  <span className="material-symbols-outlined text-xs">verified</span>
-                  Verified
-                </span>
-              </div>
-              <span className="font-mono text-[10px] text-slate-400 break-all">
-                {user?.uid || 'Not signed in'}
-              </span>
             </div>
           </div>
         </section>

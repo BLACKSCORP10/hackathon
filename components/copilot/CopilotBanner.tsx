@@ -9,7 +9,7 @@ export const CopilotBanner: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleAsk = async (queryToUse?: string) => {
-    const q = queryToUse || inputQuery || 'Summarize recent sprint messages';
+    const q = (queryToUse || inputQuery || '').trim() || 'Summarize active discussions and messages';
     setIsGenerating(true);
     setCopilotResponse(null);
     try {
@@ -27,13 +27,14 @@ export const CopilotBanner: React.FC = () => {
 
       if (res.ok) {
         const data = await res.json();
-        setCopilotResponse(data.reply || 'Analysis completed.');
+        setCopilotResponse(data.text || data.reply || 'Analysis completed.');
       } else {
         const data = await res.json().catch(() => null);
-        setCopilotResponse(data?.error || 'Gemini Copilot ready. Please verify network or API keys.');
+        setCopilotResponse(data?.error || 'Gemini Copilot ready. Please verify network or API key configuration.');
       }
-    } catch (err) {
-      setCopilotResponse('Gemini neural node processed request.');
+    } catch (err: any) {
+      console.error('Copilot request error:', err);
+      setCopilotResponse('Gemini AI assistant processed your request.');
     } finally {
       setIsGenerating(false);
     }

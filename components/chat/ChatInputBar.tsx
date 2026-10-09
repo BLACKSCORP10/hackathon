@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { compressImage } from '@/lib/imageUtils';
 
 interface ChatInputBarProps {
   onSendMessage: (
@@ -49,30 +50,54 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSendMessage }) => 
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size exceeds the 10MB transmission limit.');
-      return;
+    const isImg = file.type.startsWith('image/');
+
+    if (isImg) {
+      try {
+        const compressed = await compressImage(file, 800, 0.6);
+        setAttachment({
+          file,
+          dataUrl: compressed.dataUrl,
+          name: file.name,
+          sizeFormatted: compressed.sizeFormatted,
+          type: 'image',
+        });
+      } catch (err) {
+        console.warn('Image compression fallback:', err);
+        const reader = new FileReader();
+        reader.onload = () => {
+          setAttachment({
+            file,
+            dataUrl: reader.result as string,
+            name: file.name,
+            sizeFormatted: formatFileSize(file.size),
+            type: 'image',
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    } else {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size exceeds the 10MB transmission limit.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAttachment({
+          file,
+          dataUrl: reader.result as string,
+          name: file.name,
+          sizeFormatted: formatFileSize(file.size),
+          type: 'file',
+        });
+      };
+      reader.readAsDataURL(file);
     }
 
-    const isImg = file.type.startsWith('image/');
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setAttachment({
-        file,
-        dataUrl,
-        name: file.name,
-        sizeFormatted: formatFileSize(file.size),
-        type: isImg ? 'image' : 'file',
-      });
-    };
-
-    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
@@ -373,7 +398,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSendMessage }) => 
               placeholder={
                 attachment
                   ? 'Add a caption...'
-                  : 'Quantum message or type @gemini to ask AI...'
+                  : 'Type a message or @gemini...'
               }
               value={text}
               onChange={(e) => setText(e.target.value)}

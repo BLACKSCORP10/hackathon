@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   collection,
+  collectionGroup,
   doc,
   query,
   where,
@@ -94,6 +95,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [allChats, setAllChats] = useState<FirestoreChat[]>([]);
   const [allUsers, setAllUsers] = useState<FirestoreUser[]>([]);
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [activeChat, setActiveChat] = useState<FirestoreChat | null>(null);
   const [messages, setMessages] = useState<FirestoreMessage[]>([]);
@@ -119,7 +121,51 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // 2. Real-Time Listener for Private 1-on-1 Direct Chats for current user
+  // 2. Real-Time Dynamic Unread Messages Tracker for current authenticated user
+  useEffect(() => {
+    if (!user?.uid) {
+      setUnreadMap({});
+      return;
+    }
+
+    try {
+      const messagesGroupRef = collectionGroup(db, 'messages');
+      const q = query(messagesGroupRef, where('receiverId', '==', user.uid));
+      const unsubscribeUnread = onSnapshot(
+        q,
+        (snapshot) => {
+          const counts: Record<string, number> = {};
+          snapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            // Dynamically count unread messages: receiverId === currentUserId && !read
+            const isUnread =
+              data.receiverId === user.uid &&
+              !data.read &&
+              data.status !== 'read';
+
+            if (isUnread) {
+              const cId = data.chatId || docSnap.ref.parent.parent?.id;
+              if (cId) {
+                counts[cId] = (counts[cId] || 0) + 1;
+              }
+            }
+          });
+          setUnreadMap(counts);
+        },
+        (err) => {
+          console.warn('Unread collectionGroup note:', err);
+        }
+      );
+
+      return () => {
+        unsubscribeUnread();
+      };
+    } catch (err) {
+      console.warn('collectionGroup init exception:', err);
+    }
+  }, [user?.uid]);
+
+  // 3. Real-Time Listener for Private 1-on-1 Direct Chats for current user
   useEffect(() => {
     if (!user?.uid) {
       setAllChats([]);
@@ -144,17 +190,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           const chatName =
             data.type === 'group'
               ? data.name
-              : otherUser?.name || data.name || 'Direct Message';
+              : otherUser?.name || otherUser?.displayName || data.name || 'Direct Message';
           const chatAvatar =
             data.type === 'group'
               ? data.avatarUrl
-              : otherUser?.avatarUrl || data.avatarUrl;
+              : otherUser?.avatarUrl || otherUser?.photoURL || data.avatarUrl;
+
+          const calculatedUnread =
+            unreadMap[d.id] !== undefined
+              ? unreadMap[d.id]
+              : data.unreadCount || 0;
 
           return {
             id: d.id,
             ...data,
             name: chatName,
             avatarUrl: chatAvatar,
+            unreadCount: calculatedUnread,
             isOnline: otherUser ? otherUser.isOnline : data.isOnline,
             lastMessageTime: formatFirestoreTimestamp(data.lastMessageTime || data.updatedAt),
           } as FirestoreChat;
@@ -179,7 +231,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubscribeChats();
     };
-  }, [user?.uid, allUsers]);
+  }, [user?.uid, allUsers, unreadMap]);
 
   // 3. Real-Time Multi-Device Listener for Selected 1-on-1 Chat Messages
   useEffect(() => {
@@ -449,12 +501,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();
-    filteredChats = filteredChats.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.lastMessage && c.lastMessage.toLowerCase().includes(q)) ||
-        (c.tag && c.tag.toLowerCase().includes(q))
-    );
+    filteredChats = filteredChats.filter((c) => {
+      const nameMatch = (c.name || '').toLowerCase().includes(q);
+      const lastMsgMatch = (c.lastMessage || '').toLowerCase().includes(q);
+      const tagMatch = (c.tag || '').toLowerCase().includes(q);
+      const participantMatch = allUsers.some(
+        (u) =>
+          c.participants?.includes(u.uid) &&
+          ((u.displayName || u.name || '').toLowerCase().includes(q) ||
+            (u.email || '').toLowerCase().includes(q) ||
+            (u.username || '').toLowerCase().includes(q))
+      );
+      return nameMatch || lastMsgMatch || tagMatch || participantMatch;
+    });
   }
 
   if (activeFilter === 'unread') {
@@ -467,7 +526,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     filteredChats = filteredChats.filter((c) => c.isPinned);
   }
 
-  const unreadTotal = allChats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+  // Calculate unread total dynamically across all chats for the current user
+  const unreadTotal = Object.values(unreadMap).reduce((acc, count) => acc + count, 0);
 
   return (
     <ChatContext.Provider

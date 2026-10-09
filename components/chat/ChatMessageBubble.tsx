@@ -145,11 +145,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           </div>
 
           {/* AI Footer */}
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-white/5">
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Real-Time AI Synthesis
-            </span>
+          <div className="flex items-center justify-end text-[10px] font-mono text-slate-400 pt-1 border-t border-white/5">
             <span>{message.timestamp}</span>
           </div>
         </div>

@@ -128,8 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.email,
         phone: data.phone,
         avatarUrl: data.avatarUrl,
-        statusText: 'Quantum nodes syncing · Standby',
-        statusEmoji: '⚡',
+        statusText: 'Available · Connected via NexusChat',
+        statusEmoji: '💬',
         role: 'Nexus Operative',
       });
       setUser(synced);

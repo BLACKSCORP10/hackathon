@@ -7,6 +7,7 @@ import { FirestoreStory, createFirestoreStory, deleteFirestoreStory } from '@/li
 import { TopHeader } from '@/components/navigation/TopHeader';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { useAuth } from '@/context/AuthContext';
+import { compressImage } from '@/lib/imageUtils';
 
 export default function StoriesMomentsPage() {
   const { user } = useAuth();
@@ -56,22 +57,24 @@ export default function StoriesMomentsPage() {
     return () => clearInterval(timer);
   }, [selectedStory]);
 
-  // Handle Real File Selection for Story
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Real File Selection for Story with Canvas compression
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Photo exceeds 10MB limit.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setNewMediaDataUrl(reader.result as string);
+    try {
+      const compressed = await compressImage(file, 800, 0.6);
+      setNewMediaDataUrl(compressed.dataUrl);
       setShowAddModal(true);
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn('Story image compression fallback:', err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setNewMediaDataUrl(reader.result as string);
+        setShowAddModal(true);
+      };
+      reader.readAsDataURL(file);
+    }
     e.target.value = '';
   };
 
@@ -79,12 +82,20 @@ export default function StoriesMomentsPage() {
     if (!user || !newMediaDataUrl.trim()) return;
     setIsPosting(true);
     try {
+      let finalMediaUrl = newMediaDataUrl.trim();
+      if (finalMediaUrl.length > 200000) {
+        try {
+          const comp = await compressImage(finalMediaUrl, 800, 0.6);
+          finalMediaUrl = comp.dataUrl;
+        } catch (e) {}
+      }
+
       await createFirestoreStory({
         userId: user.uid,
         userName: user.name || user.username || 'Nexus Operative',
         userAvatar: user.avatarUrl,
-        mediaUrl: newMediaDataUrl.trim(),
-        caption: newCaption.trim() || 'Encrypted moment transmission',
+        mediaUrl: finalMediaUrl,
+        caption: newCaption.trim() || 'Moment transmission',
       });
       setShowAddModal(false);
       setNewCaption('');

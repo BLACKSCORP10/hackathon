@@ -47,7 +47,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
       name: user?.name || 'Nexus Operative',
       avatarUrl: user?.avatarUrl || defaultAvatar,
       username: user?.username || user?.email?.split('@')[0] || 'node',
-      bio: user?.statusText || user?.bio || 'Quantum nodes syncing · Standby for transmissions',
+      bio: user?.statusText || user?.bio || 'Available · Connected via NexusChat',
       statusText: 'Online · Verified Firebase Node',
       isOnline: true,
     });
