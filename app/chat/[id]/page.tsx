@@ -212,7 +212,7 @@ export default function ActiveChatThreadPage() {
             <div className="flex flex-col">
               <span className="text-xs font-semibold text-indigo-300">Gemini 2.5 Flash</span>
               <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-[11px] text-slate-400">Generating intelligent response</span>
+                <span className="text-[11px] text-slate-300 font-medium">Gemini is thinking...</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" />
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]" />

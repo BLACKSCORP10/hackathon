@@ -4,9 +4,31 @@ import { GoogleGenAI } from '@google/genai';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { prompt, mode = 'chat', history = [], roomName = 'Nexus Channel' } = body;
+    const {
+      prompt = '',
+      roomContext,
+      history = [],
+      mode = 'chat',
+      roomName = 'Nexus Channel',
+    } = body;
 
-    if (!prompt && mode !== 'summarize') {
+    const contextMessages = Array.isArray(roomContext)
+      ? roomContext
+      : Array.isArray(history)
+      ? history
+      : typeof roomContext === 'string'
+      ? [{ content: roomContext }]
+      : [];
+
+    const isSummarize =
+      mode === 'summarize' ||
+      (typeof prompt === 'string' && prompt.toLowerCase().includes('summarize'));
+
+    const isSearch =
+      mode === 'search' ||
+      (typeof prompt === 'string' && prompt.toLowerCase().includes('search'));
+
+    if (!prompt && !isSummarize) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
@@ -19,34 +41,38 @@ export async function POST(req: NextRequest) {
 
     if (apiKey) {
       try {
-        // 1. Try official @google/genai SDK
+        // 1. Primary Engine: Official @google/genai SDK
         const ai = new GoogleGenAI({ apiKey });
 
-        if (mode === 'summarize') {
-          const formattedHistory = (history as any[])
-            .map((m: any) => `[${m.senderName || 'User'}]: ${m.content || m.text || ''}`)
+        if (isSummarize) {
+          const formattedTranscript = contextMessages
+            .map(
+              (m: any) =>
+                `[${m.senderName || m.sender || 'User'}]: ${
+                  m.content || m.text || ''
+                }`
+            )
             .join('\n');
 
-          const summaryPrompt = `You are Nexus Gemini, an advanced AI assistant embedded in NexusChat.
-Please provide a clear, concise summary of the following chat conversation from "${roomName}":
+          const summaryPrompt = `You are Gemini AI, an intelligent assistant embedded in NexusChat.
+Please provide a clear, structured summary of the following chat messages from "${roomName}":
 
-Chat Transcript:
-${formattedHistory || 'No recent messages in this channel.'}
+Chat Messages:
+${formattedTranscript || 'No prior messages found in this room.'}
 
-Provide a structured summary with:
-1. 📌 Key Discussion Points
-2. 🎯 Action Items & Next Steps
-3. 💡 Core Decisions or Code Artifacts`;
+Please output:
+1. 📌 Key Highlights
+2. 🎯 Action Items & Decisions
+3. 💡 Summary Conclusion`;
 
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: summaryPrompt,
           });
 
-          aiResponseText = response.text || 'Unable to generate room summary.';
-        } else if (mode === 'search') {
-          const searchPrompt = `You are Nexus Gemini. The user is asking a query: "${prompt}".
-Please provide an accurate, up-to-date, structured response with verified key facts, clear explanations, and technical details where applicable.`;
+          aiResponseText = response.text || 'Unable to generate chat summary.';
+        } else if (isSearch) {
+          const searchPrompt = `You are Gemini AI. Answer the following search query clearly and accurately: "${prompt}". Provide up-to-date, structured technical information with bullet points.`;
 
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -55,9 +81,9 @@ Please provide an accurate, up-to-date, structured response with verified key fa
 
           aiResponseText = response.text || 'Search completed with no results.';
         } else {
-          // Standard Chat / Command
+          // Standard Chat Prompt
           const systemInstruction =
-            'You are Nexus Gemini, an intelligent, helpful, and concise AI assistant in NexusChat. Provide clear, accurate answers with clean Markdown formatting, bullet points, and code blocks where helpful.';
+            'You are Gemini AI, an intelligent, fast, and helpful assistant in NexusChat. Provide accurate, clear responses with clean Markdown formatting, bullet points, and code blocks where helpful.';
 
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -70,19 +96,24 @@ Please provide an accurate, up-to-date, structured response with verified key fa
           aiResponseText = response.text || 'Received response from Gemini.';
         }
       } catch (sdkError: any) {
-        console.warn('Google GenAI SDK error, attempting direct REST fallback:', sdkError?.message);
-        
-        // 2. Direct REST Fallback with standard Google Gemini API payload
+        console.warn('Google GenAI SDK error, trying direct REST endpoint fallback:', sdkError?.message);
+
+        // 2. Direct Google Generative Language REST API Fallback
         try {
           const modelName = 'gemini-2.5-flash';
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-          
+
           let contentText = prompt;
-          if (mode === 'summarize') {
-            const formattedHistory = (history as any[])
-              .map((m: any) => `[${m.senderName || 'User'}]: ${m.content || m.text || ''}`)
+          if (isSummarize) {
+            const formattedTranscript = contextMessages
+              .map(
+                (m: any) =>
+                  `[${m.senderName || m.sender || 'User'}]: ${
+                    m.content || m.text || ''
+                  }`
+              )
               .join('\n');
-            contentText = `Summarize this conversation:\n${formattedHistory}`;
+            contentText = `Please provide a clear, concise summary of this chat:\n${formattedTranscript}`;
           }
 
           const restRes = await fetch(endpoint, {
@@ -100,21 +131,20 @@ Please provide an accurate, up-to-date, structured response with verified key fa
               'Received response from Gemini.';
           } else {
             console.warn('Gemini REST API status:', restRes.status);
-            aiResponseText = generateFallbackResponse(prompt, mode, history, roomName);
+            aiResponseText = generateFallbackResponse(prompt, isSummarize, contextMessages, roomName);
           }
         } catch (restErr) {
-          console.error('Gemini REST API error:', restErr);
-          aiResponseText = generateFallbackResponse(prompt, mode, history, roomName);
+          console.error('Gemini REST API fallback error:', restErr);
+          aiResponseText = generateFallbackResponse(prompt, isSummarize, contextMessages, roomName);
         }
       }
     } else {
-      aiResponseText = generateFallbackResponse(prompt, mode, history, roomName);
+      aiResponseText = generateFallbackResponse(prompt, isSummarize, contextMessages, roomName);
     }
 
     return NextResponse.json({
       text: aiResponseText,
       reply: aiResponseText,
-      mode,
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
@@ -126,29 +156,23 @@ Please provide an accurate, up-to-date, structured response with verified key fa
   }
 }
 
-// Clean contextual fallback when API key is not configured
+// Clean contextual fallback when API key is pending configuration
 function generateFallbackResponse(
   prompt: string,
-  mode: string,
-  history: any[],
+  isSummarize: boolean,
+  contextMessages: any[],
   roomName: string
 ): string {
-  if (mode === 'summarize') {
-    const messageCount = history.length;
+  if (isSummarize) {
+    const messageCount = contextMessages.length;
     const participants = Array.from(
-      new Set(history.map((m) => m.senderName || 'User'))
+      new Set(contextMessages.map((m) => m.senderName || m.sender || 'User'))
     ).join(', ') || 'Participants';
 
     return `### 📋 Chat Summary (${roomName})
 - **Participants**: ${participants}
 - **Messages Analyzed**: ${messageCount}
 - **Overview**: Real-time messaging session active. Media attachments, voice notes, and direct messages synchronized successfully.`;
-  }
-
-  if (mode === 'search') {
-    return `### 🔍 Search Query: "${prompt}"
-- **Query**: \`${prompt}\`
-- **Result**: Ready to assist with research, calculations, and data queries. (Add GEMINI_API_KEY in .env.local to enable live web queries).`;
   }
 
   return `🤖 **Gemini AI**:
