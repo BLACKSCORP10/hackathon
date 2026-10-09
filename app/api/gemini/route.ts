@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
       userQuery.toLowerCase().includes('summarize');
 
     if (!userQuery && !isSummarize) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+      return NextResponse.json(
+        { text: 'Error fetching Gemini response.', error: 'Prompt is required' },
+        { status: 400 }
+      );
     }
 
     const apiKey =
@@ -30,6 +33,7 @@ export async function POST(req: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         {
+          text: 'Error fetching Gemini response.',
           error:
             'GEMINI_API_KEY is not configured on the server. Please set GEMINI_API_KEY in your environment variables.',
         },
@@ -46,22 +50,21 @@ export async function POST(req: NextRequest) {
       : [];
 
     let aiResponseText = '';
+    const primaryModel = 'gemini-2.5-flash';
+    const fallbackModel = 'gemini-1.5-flash';
 
-    try {
-      // 1. Primary Engine: Official @google/genai SDK
-      const ai = new GoogleGenAI({ apiKey });
+    let contentToSend = userQuery;
+    if (isSummarize) {
+      const formattedTranscript = contextMessages
+        .map(
+          (m: any) =>
+            `[${m.senderName || m.sender || 'User'}]: ${
+              m.content || m.text || ''
+            }`
+        )
+        .join('\n');
 
-      if (isSummarize) {
-        const formattedTranscript = contextMessages
-          .map(
-            (m: any) =>
-              `[${m.senderName || m.sender || 'User'}]: ${
-                m.content || m.text || ''
-              }`
-          )
-          .join('\n');
-
-        const summaryPrompt = `You are Gemini AI, an intelligent assistant embedded in NexusChat.
+      contentToSend = `You are Gemini AI, an intelligent assistant embedded in NexusChat.
 Please provide a clear, structured, and helpful summary of the following chat messages from "${roomName}":
 
 Chat Transcript:
@@ -71,80 +74,73 @@ Format the response with:
 1. 📌 Key Highlights
 2. 🎯 Decisions & Action Items
 3. 💡 Summary Conclusion`;
+    }
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: summaryPrompt,
-        });
+    // 1. Primary Engine: Official @google/genai SDK (gemini-2.5-flash)
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const systemInstruction =
+        'You are Gemini AI, an intelligent, fast, and helpful assistant in NexusChat. Provide accurate, clear responses with clean Markdown formatting, bullet points, and code blocks where helpful.';
 
-        aiResponseText = response.text || 'Unable to generate chat summary.';
-      } else {
-        // Standard prompt execution
-        const systemInstruction =
-          'You are Gemini AI, an intelligent, fast, and helpful assistant in NexusChat. Provide accurate, clear responses with clean Markdown formatting, bullet points, and code blocks where helpful.';
+      const response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: contentToSend,
+        config: !isSummarize
+          ? {
+              systemInstruction,
+            }
+          : undefined,
+      });
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: userQuery,
-          config: {
-            systemInstruction,
-          },
-        });
-
-        aiResponseText = response.text || 'Received empty response from Gemini.';
-      }
+      aiResponseText = response.text || '';
     } catch (sdkError: any) {
-      console.warn(
-        'Google GenAI SDK error, attempting direct Google Generative Language REST API:',
-        sdkError?.message
-      );
+      console.warn(`GenAI SDK (${primaryModel}) failed, trying fallback (${fallbackModel}):`, sdkError?.message);
 
-      // 2. Direct Google Generative Language REST API Fallback
+      // Try fallback model with SDK
       try {
-        const modelName = 'gemini-2.5-flash';
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-        let contentText = userQuery;
-        if (isSummarize) {
-          const formattedTranscript = contextMessages
-            .map(
-              (m: any) =>
-                `[${m.senderName || m.sender || 'User'}]: ${
-                  m.content || m.text || ''
-                }`
-            )
-            .join('\n');
-          contentText = `Please provide a clear, concise summary of this chat conversation:\n${formattedTranscript}`;
-        }
-
-        const restRes = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: contentText }] }],
-          }),
+        const ai = new GoogleGenAI({ apiKey });
+        const fallbackResponse = await ai.models.generateContent({
+          model: fallbackModel,
+          contents: contentToSend,
         });
-
-        if (restRes.ok) {
-          const restData = await restRes.json();
-          aiResponseText =
-            restData?.candidates?.[0]?.content?.parts?.[0]?.text ||
-            'Received response from Gemini.';
-        } else {
-          const errData = await restRes.json().catch(() => null);
-          console.error('Gemini REST API error response:', errData);
-          return NextResponse.json(
-            { error: errData?.error?.message || `Gemini API error: ${restRes.statusText}` },
-            { status: restRes.status }
-          );
-        }
-      } catch (restErr: any) {
-        console.error('Gemini REST API fallback error:', restErr);
-        return NextResponse.json(
-          { error: restErr?.message || 'Failed to connect to Gemini API endpoint.' },
-          { status: 500 }
-        );
+        aiResponseText = fallbackResponse.text || '';
+      } catch (fallbackError: any) {
+        console.warn(`GenAI SDK fallback (${fallbackModel}) failed:`, fallbackError?.message);
       }
+    }
+
+    // 2. Direct Google Generative Language REST API Fallback
+    if (!aiResponseText) {
+      for (const targetModel of [primaryModel, fallbackModel]) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
+          const restRes = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: contentToSend }] }],
+            }),
+          });
+
+          if (restRes.ok) {
+            const restData = await restRes.json();
+            const textCandidate = restData?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (textCandidate) {
+              aiResponseText = textCandidate;
+              break;
+            }
+          }
+        } catch (restErr: any) {
+          console.warn(`Gemini REST API fallback (${targetModel}) error:`, restErr?.message);
+        }
+      }
+    }
+
+    if (!aiResponseText) {
+      return NextResponse.json(
+        { text: 'Error fetching Gemini response.', error: 'Failed to obtain content from Gemini models' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -153,7 +149,7 @@ Format the response with:
   } catch (error: any) {
     console.error('Error in /api/gemini route:', error);
     return NextResponse.json(
-      { error: error?.message || 'Gemini processing failed' },
+      { text: 'Error fetching Gemini response.', error: error?.message || 'Gemini processing failed' },
       { status: 500 }
     );
   }
