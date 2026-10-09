@@ -11,6 +11,23 @@ interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+const uploadToImgBB = async (file: File): Promise<string> => {
+  const apiKey = "02fc16975b08dd5c3162cbf9c94ce1e5";
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    return data.data.url;
+  } else {
+    throw new Error("ImgBB upload failed");
+  }
+};
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const { user, updateProfileData } = useAuth();
@@ -45,19 +62,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
     if (!file) return;
 
     try {
-      const compressed = await compressImage(file, 800, 0.6);
-      setAvatarUrl(compressed.dataUrl);
+      setIsSaving(true);
+      // Upload image to ImgBB and get short URL
+      const uploadedUrl = await uploadToImgBB(file);
+      // Set local state to the new short URL
+      setAvatarUrl(uploadedUrl);
     } catch (err) {
-      console.warn('Avatar compression fallback:', err);
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setAvatarUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      console.error("Error uploading image:", err);
+      setErrorMessage("Failed to upload profile picture.");
+    } finally {
+      setIsSaving(false);
     }
-    e.target.value = '';
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -85,13 +100,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         phoneNumber: formattedPhone,
         bio: bio.trim() || 'Available · Connected via NexusChat',
         statusText: bio.trim() || 'Available · Connected via NexusChat',
-        avatarUrl: avatarUrl.trim(),
-        photoURL: avatarUrl.trim(),
+        avatarUrl: avatarUrl ? avatarUrl.trim() : '',
+        photoURL: avatarUrl ? avatarUrl.trim() : '',
       };
 
       // 1. Save cleanly to Firestore users/${user.uid} and update Firebase Auth profile
       await updateProfileData(profileUpdates);
-      
+
       // 2. Sync ChatContext local operative state
       await updateProfile(profileUpdates);
 

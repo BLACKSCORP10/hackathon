@@ -36,24 +36,42 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  const uploadToImgBB = async (file: File): Promise<string> => {
+    const apiKey = "02fc16975b08dd5c3162cbf9c94ce1e5";
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      return data.data.url; // Returns direct short HTTPS link
+    } else {
+      throw new Error("ImgBB upload failed");
+    }
+  };
+
   const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const compressed = await compressImage(file, 800, 0.6);
-      setAvatarUrl(compressed.dataUrl);
+      setIsSaving(true); // Optional: show loading state
+
+      // Upload directly to ImgBB to get a short URL
+      const uploadedUrl = await uploadToImgBB(file);
+
+      // Set local preview state to the new short URL
+      setAvatarUrl(uploadedUrl);
     } catch (err) {
-      console.warn('Avatar compression fallback:', err);
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setAvatarUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      console.error("Error uploading image:", err);
+      setErrorMessage("Failed to upload profile picture.");
+    } finally {
+      setIsSaving(false);
     }
-    e.target.value = '';
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -80,8 +98,8 @@ export default function ProfilePage() {
         phoneNumber: formattedPhone,
         bio: bio.trim() || 'Available · Connected via NexusChat',
         statusText: bio.trim() || 'Available · Connected via NexusChat',
-        avatarUrl: avatarUrl.trim(),
-        photoURL: avatarUrl.trim(),
+        avatarUrl: avatarUrl ? avatarUrl.trim() : '',
+        photoURL: avatarUrl ? avatarUrl.trim() : '',
       };
 
       await updateProfileData(profileUpdates);
@@ -100,15 +118,13 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className={`flex flex-col min-h-screen transition-colors duration-300 ${
-      theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
-    }`}>
+    <div className={`flex flex-col min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
+      }`}>
       <TopHeader title="NexusChat" subtitle="Operative Profile" showBack />
 
       <main className="flex-1 flex flex-col pt-16 pb-24 max-w-xl mx-auto w-full px-4 py-6 gap-6">
-        <div className={`rounded-3xl p-6 shadow-2xl border backdrop-blur-2xl flex flex-col gap-6 ${
-          theme === 'dark' ? 'bg-slate-900/80 border-white/10' : 'bg-white/90 border-slate-200'
-        }`}>
+        <div className={`rounded-3xl p-6 shadow-2xl border backdrop-blur-2xl flex flex-col gap-6 ${theme === 'dark' ? 'bg-slate-900/80 border-white/10' : 'bg-white/90 border-slate-200'
+          }`}>
           {errorMessage && (
             <div className="p-3.5 rounded-2xl bg-rose-500/15 text-rose-300 text-xs flex items-center gap-2 border border-rose-500/30">
               <span className="material-symbols-outlined text-base">error</span>
