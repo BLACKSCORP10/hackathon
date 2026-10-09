@@ -19,6 +19,8 @@ import {
   FirestoreMessage,
   FirestoreUser,
   sendFirestoreMessage,
+  deleteFirestoreMessage,
+  markFirestoreMessagesAsRead,
   addFirestoreReaction,
   createOrGetDirectChat,
 } from '@/lib/db';
@@ -45,6 +47,8 @@ interface ChatContextType {
     mediaUrl?: string,
     mediaMeta?: any
   ) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
+  markAsRead: (chatId?: string) => Promise<void>;
   reactToMessage: (messageId: string, emoji: string) => Promise<void>;
 }
 
@@ -151,8 +155,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       q,
       (snapshot) => {
         const currentUid = user?.uid || '';
+        let hasUnreadForMe = false;
+
         const loadedMsgs: FirestoreMessage[] = snapshot.docs.map((d) => {
           const data = d.data();
+          const isSelf = data.senderId === currentUid;
+          if (!isSelf && data.status !== 'read') {
+            hasUnreadForMe = true;
+          }
+
           return {
             id: d.id,
             chatId: activeChatId,
@@ -167,15 +178,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             type: data.type || 'text',
             mediaUrl: data.mediaUrl,
             mediaMeta: data.mediaMeta,
+            status: data.status || 'delivered',
             reactions: data.reactions || {},
             replyTo: data.replyTo,
             timestamp: formatFirestoreTimestamp(data.timestamp),
-            isSelf: data.senderId === currentUid,
+            isSelf,
           };
         });
 
         setMessages(loadedMsgs);
         setIsLoadingMessages(false);
+
+        // Mark incoming messages as read automatically
+        if (hasUnreadForMe && currentUid) {
+          markFirestoreMessagesAsRead(activeChatId, currentUid);
+        }
       },
       (error) => {
         console.warn('Messages snapshot listener error:', error);
@@ -191,6 +208,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const selectChat = (chatId: string) => {
     setActiveChatId(chatId);
+    if (user?.uid) {
+      markFirestoreMessagesAsRead(chatId, user.uid);
+    }
+  };
+
+  const markAsRead = async (chatId?: string) => {
+    const targetChatId = chatId || activeChatId;
+    if (targetChatId && user?.uid) {
+      await markFirestoreMessagesAsRead(targetChatId, user.uid);
+    }
   };
 
   const startChatWithUser = async (targetUser: FirestoreUser): Promise<string> => {
@@ -219,9 +246,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         type,
         mediaUrl,
         mediaMeta,
+        status: 'delivered',
       });
     } catch (err) {
       console.error('Error sending message to Firestore:', err);
+      throw err;
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    if (!activeChatId) return;
+    try {
+      await deleteFirestoreMessage(activeChatId, messageId);
+    } catch (err) {
+      console.error('Error deleting message from Firestore:', err);
       throw err;
     }
   };
@@ -278,6 +316,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         selectChat,
         startChatWithUser,
         sendMessage,
+        deleteMessage,
+        markAsRead,
         reactToMessage,
       }}
     >

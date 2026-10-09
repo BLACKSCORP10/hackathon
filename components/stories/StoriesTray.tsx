@@ -11,6 +11,7 @@ export const StoriesTray: React.FC = () => {
   const { user } = useAuth();
   const [stories, setStories] = useState<FirestoreStory[]>([]);
   const [selectedStory, setSelectedStory] = useState<FirestoreStory | null>(null);
+  const [storyProgress, setStoryProgress] = useState(0);
 
   useEffect(() => {
     const storiesRef = collection(db, 'stories');
@@ -25,12 +26,28 @@ export const StoriesTray: React.FC = () => {
         setStories(loaded);
       },
       () => {
-        // Fallback demo state if collection empty
         setStories([]);
       }
     );
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    let timer: any;
+    if (selectedStory) {
+      setStoryProgress(0);
+      timer = setInterval(() => {
+        setStoryProgress((prev) => {
+          if (prev >= 100) {
+            setSelectedStory(null);
+            return 0;
+          }
+          return prev + 2;
+        });
+      }, 100);
+    }
+    return () => clearInterval(timer);
+  }, [selectedStory]);
 
   return (
     <>
@@ -61,6 +78,7 @@ export const StoriesTray: React.FC = () => {
         {stories.map((story) => (
           <button
             key={story.id}
+            type="button"
             onClick={() => setSelectedStory(story)}
             className="flex flex-col items-center gap-1 shrink-0 group cursor-pointer focus:outline-none"
           >
@@ -78,28 +96,38 @@ export const StoriesTray: React.FC = () => {
 
       {/* Story Viewer Modal */}
       {selectedStory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg animate-fade-in">
-          <div className="relative w-full max-w-sm h-[580px] bg-surface-container rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between p-4 border border-surface-container-highest">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-fade-in"
+          onClick={() => setSelectedStory(null)}
+        >
+          <div
+            className="relative w-full max-w-sm h-[580px] bg-surface-container rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between p-4 border border-surface-container-highest"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Story Top Bar */}
             <div className="relative z-10 flex flex-col gap-2">
-              <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full bg-white rounded-full animate-[progress_5s_linear_forwards]" />
+              <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden">
+                <div
+                  style={{ width: `${storyProgress}%` }}
+                  className="h-full bg-primary rounded-full transition-all duration-100 ease-linear"
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <img
                     alt={selectedStory.userName}
-                    className="w-8 h-8 rounded-full object-cover ring-1 ring-white/50"
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-primary"
                     src={selectedStory.userAvatar}
                   />
                   <div className="flex flex-col">
-                    <span className="font-label-md text-white text-xs font-semibold">{selectedStory.userName}</span>
-                    <span className="text-[10px] text-white/70">24h Ephemeral Moment</span>
+                    <span className="font-label-md text-white text-xs font-semibold drop-shadow">{selectedStory.userName}</span>
+                    <span className="text-[10px] text-white/80 drop-shadow">24h Ephemeral Moment</span>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setSelectedStory(null)}
-                  className="text-white hover:text-white/80 p-1 rounded-full"
+                  className="text-white hover:text-white/80 p-1 rounded-full bg-black/40"
                 >
                   <span className="material-symbols-outlined text-xl">close</span>
                 </button>
@@ -112,7 +140,7 @@ export const StoriesTray: React.FC = () => {
               className="absolute inset-0 w-full h-full object-cover"
               src={selectedStory.mediaUrl}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40 pointer-events-none" />
 
             {/* Story Caption & Quick Reaction */}
             <div className="relative z-10 flex flex-col gap-3">
@@ -121,9 +149,10 @@ export const StoriesTray: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Send a reply..."
-                  className="flex-1 bg-white/20 backdrop-blur-md text-white placeholder:text-white/60 text-xs px-3 py-2 rounded-full border border-white/30 focus:outline-none"
+                  className="flex-1 bg-white/20 backdrop-blur-md text-white placeholder:text-white/60 text-xs px-3 py-2 rounded-full border border-white/30 focus:outline-none focus:border-primary"
                 />
                 <button
+                  type="button"
                   onClick={() => setSelectedStory(null)}
                   className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95"
                 >

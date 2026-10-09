@@ -52,7 +52,9 @@ export interface FirestoreMessage {
     size?: string;
     duration?: string;
     waveform?: number[];
+    mimeType?: string;
   };
+  status?: 'sent' | 'delivered' | 'read';
   reactions?: Record<string, number>;
   replyTo?: {
     id: string;
@@ -93,6 +95,21 @@ export interface FirestoreStory {
   caption: string;
   timestamp?: any;
   viewed?: boolean;
+}
+
+export interface FirestoreCallLog {
+  id: string;
+  callerId: string;
+  callerName: string;
+  callerAvatar: string;
+  receiverId: string;
+  receiverName: string;
+  receiverAvatar: string;
+  type: 'audio' | 'video';
+  direction: 'incoming' | 'outgoing' | 'missed';
+  status: 'connected' | 'missed' | 'rejected';
+  duration: number; // in seconds
+  timestamp?: any;
 }
 
 // ----------------- Dynamic Firestore Services -----------------
@@ -193,6 +210,7 @@ export async function sendFirestoreMessage(
     mediaUrl?: string;
     mediaMeta?: any;
     replyTo?: any;
+    status?: 'sent' | 'delivered' | 'read';
   }
 ): Promise<string> {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
@@ -208,17 +226,23 @@ export async function sendFirestoreMessage(
     mediaUrl: message.mediaUrl || null,
     mediaMeta: message.mediaMeta || null,
     replyTo: message.replyTo || null,
+    status: message.status || 'delivered',
     reactions: {},
     timestamp: serverTimestamp(),
   });
 
   // Update parent chat snippet in real time
   const chatDocRef = doc(db, 'chats', chatId);
+  let snippet = message.content;
+  if (message.type === 'image') snippet = '📷 Photo attachment';
+  else if (message.type === 'voice') snippet = '🎙️ Voice note';
+  else if (message.type === 'file') snippet = `📎 ${message.mediaMeta?.name || 'File attachment'}`;
+
   await setDoc(
     chatDocRef,
     {
       id: chatId,
-      lastMessage: message.content || (message.type === 'image' ? '📷 Photo attachment' : '🎙️ Voice note'),
+      lastMessage: snippet,
       lastMessageTime: serverTimestamp(),
       lastSenderId: message.senderId,
       updatedAt: serverTimestamp(),
@@ -227,6 +251,59 @@ export async function sendFirestoreMessage(
   );
 
   return docRef.id;
+}
+
+// Delete Message from Firestore Sub-Collection
+export async function deleteFirestoreMessage(chatId: string, messageId: string): Promise<void> {
+  const msgDocRef = doc(db, 'chats', chatId, 'messages', messageId);
+  await deleteDoc(msgDocRef);
+
+  // Update lastMessage snippet in chat if needed
+  try {
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(1));
+    const latestSnap = await getDocs(q);
+    const chatDocRef = doc(db, 'chats', chatId);
+
+    if (!latestSnap.empty) {
+      const lastMsg = latestSnap.docs[0].data();
+      let snippet = lastMsg.content || lastMsg.text;
+      if (lastMsg.type === 'image') snippet = '📷 Photo attachment';
+      else if (lastMsg.type === 'voice') snippet = '🎙️ Voice note';
+      else if (lastMsg.type === 'file') snippet = '📎 File attachment';
+
+      await updateDoc(chatDocRef, {
+        lastMessage: snippet,
+        lastMessageTime: lastMsg.timestamp || serverTimestamp(),
+        lastSenderId: lastMsg.senderId,
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await updateDoc(chatDocRef, {
+        lastMessage: 'Message history cleared',
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    console.warn('Could not update parent chat snippet on delete:', err);
+  }
+}
+
+// Mark all incoming messages in a chat as 'read'
+export async function markFirestoreMessagesAsRead(chatId: string, currentUserId: string): Promise<void> {
+  try {
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const q = query(messagesRef, where('receiverId', '==', currentUserId));
+    const snap = await getDocs(q);
+
+    const updatePromises = snap.docs
+      .filter((d) => d.data().status !== 'read')
+      .map((d) => updateDoc(d.ref, { status: 'read' }));
+
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.warn('Error marking messages as read:', error);
+  }
 }
 
 // Add Reaction to a Message
@@ -241,4 +318,35 @@ export async function addFirestoreReaction(chatId: string, messageId: string, em
   await updateDoc(msgDocRef, {
     [`reactions.${emoji}`]: newCount,
   });
+}
+
+// Story Operations
+export async function createFirestoreStory(story: {
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  mediaUrl: string;
+  caption: string;
+}): Promise<string> {
+  const storiesRef = collection(db, 'stories');
+  const docRef = await addDoc(storiesRef, {
+    ...story,
+    timestamp: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+export async function deleteFirestoreStory(storyId: string): Promise<void> {
+  const storyRef = doc(db, 'stories', storyId);
+  await deleteDoc(storyRef);
+}
+
+// Call Log Operations
+export async function saveFirestoreCallLog(callLog: Omit<FirestoreCallLog, 'id' | 'timestamp'>): Promise<string> {
+  const callsRef = collection(db, 'calls');
+  const docRef = await addDoc(callsRef, {
+    ...callLog,
+    timestamp: serverTimestamp(),
+  });
+  return docRef.id;
 }
