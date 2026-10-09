@@ -1,36 +1,23 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { FirestoreCallLog, saveFirestoreCallLog } from '@/lib/db';
+import { FirestoreCallLog } from '@/lib/db';
 import { TopHeader } from '@/components/navigation/TopHeader';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
+import { useCall } from '@/context/CallContext';
 
 export default function CallLogsPage() {
   const { user } = useAuth();
   const { users } = useChat();
+  const { startCall } = useCall();
   const [filter, setFilter] = useState<'all' | 'missed'>('all');
   const [dialerOpen, setDialerOpen] = useState(false);
   const [dialTarget, setDialTarget] = useState('');
   const [callLogs, setCallLogs] = useState<FirestoreCallLog[]>([]);
-
-  // Live Call Modal State
-  const [activeCallTarget, setActiveCallTarget] = useState<{
-    name: string;
-    avatarUrl: string;
-    id: string;
-    type: 'audio' | 'video';
-  } | null>(null);
-  const [callDuration, setCallDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [streamError, setStreamError] = useState<string | null>(null);
-
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
 
   // 1. Real-Time Firestore Call Logs Listener
   useEffect(() => {
@@ -54,118 +41,13 @@ export default function CallLogsPage() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Setup getUserMedia stream when call modal is active
-  useEffect(() => {
-    let timer: any;
-
-    if (activeCallTarget) {
-      setCallDuration(0);
-      setIsMuted(false);
-      setIsVideoOff(false);
-      setStreamError(null);
-
-      timer = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
-      }, 1000);
-
-      const startStream = async () => {
-        try {
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            setStreamError('Media devices not supported in this browser.');
-            return;
-          }
-
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: activeCallTarget.type === 'video' ? { width: 1280, height: 720, facingMode: 'user' } : false,
-          });
-
-          localStreamRef.current = stream;
-
-          if (localVideoRef.current && activeCallTarget.type === 'video') {
-            localVideoRef.current.srcObject = stream;
-            localVideoRef.current.play().catch((e) => console.warn('Video play error:', e));
-          }
-        } catch (err: any) {
-          console.warn('getUserMedia error:', err);
-          setStreamError(err.message || 'Could not access camera/microphone.');
-        }
-      };
-
-      startStream();
-    }
-
-    return () => {
-      if (timer) clearInterval(timer);
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop());
-        localStreamRef.current = null;
-      }
-    };
-  }, [activeCallTarget]);
-
-  const toggleMute = () => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-      }
-    } else {
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const toggleVideo = () => {
-    if (localStreamRef.current) {
-      const videoTrack = localStreamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOff(!videoTrack.enabled);
-      }
-    } else {
-      setIsVideoOff(!isVideoOff);
-    }
-  };
-
-  const endCall = async () => {
-    const durationSec = callDuration;
-    const currentTarget = activeCallTarget;
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
-      localStreamRef.current = null;
-    }
-
-    setActiveCallTarget(null);
-
-    if (user && currentTarget) {
-      try {
-        await saveFirestoreCallLog({
-          callerId: user.uid,
-          callerName: user.name || user.username || 'Nexus Operative',
-          callerAvatar: user.avatarUrl,
-          receiverId: currentTarget.id,
-          receiverName: currentTarget.name,
-          receiverAvatar: currentTarget.avatarUrl,
-          type: currentTarget.type,
-          direction: 'outgoing',
-          status: 'connected',
-          duration: durationSec,
-        });
-      } catch (e) {
-        console.warn('Error recording call log:', e);
-      }
-    }
-  };
-
   const formatDuration = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Default mock seeds if user has no calls yet in Firestore
+  // Fallback logs when database is initially empty
   const fallbackLogs: FirestoreCallLog[] = [
     {
       id: 'mock-1',
@@ -201,7 +83,14 @@ export default function CallLogsPage() {
   const filteredLogs = filter === 'missed' ? displayLogs.filter((c) => c.status === 'missed') : displayLogs;
 
   const handleStartCall = (name: string, avatarUrl: string, id: string, type: 'audio' | 'video') => {
-    setActiveCallTarget({ name, avatarUrl, id, type });
+    startCall(
+      {
+        uid: id,
+        name,
+        avatarUrl,
+      },
+      type
+    );
   };
 
   return (
@@ -279,7 +168,7 @@ export default function CallLogsPage() {
                           ? 'call_made'
                           : 'call_missed'}
                       </span>
-                      <span>AES-256 Encrypted</span>
+                      <span>Open Relay WebRTC</span>
                       {log.duration > 0 && (
                         <span className="font-mono text-[10px] bg-surface-container px-1.5 py-0.5 rounded text-tertiary">
                           {formatDuration(log.duration)}
@@ -335,8 +224,8 @@ export default function CallLogsPage() {
               <span className="material-symbols-outlined text-xl">close</span>
             </button>
 
-            <h3 className="font-headline-md text-on-surface font-semibold">Start Secure Call</h3>
-            <p className="text-xs text-on-surface-variant">Select a contact or enter handle</p>
+            <h3 className="font-headline-md text-on-surface font-semibold">Start WebRTC Call</h3>
+            <p className="text-xs text-on-surface-variant">Select an active node or contact</p>
 
             <input
               type="text"
@@ -348,29 +237,37 @@ export default function CallLogsPage() {
 
             {/* Online Contacts Selector */}
             <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto no-scrollbar">
-              {users.slice(0, 4).map((u) => (
-                <div
-                  key={u.id}
-                  onClick={() => setDialTarget(u.name)}
-                  className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors text-left"
-                >
-                  <img alt={u.name} src={u.avatarUrl} className="w-8 h-8 rounded-full object-cover" />
-                  <span className="text-xs font-medium text-on-surface truncate">{u.name}</span>
-                </div>
-              ))}
+              {users
+                .filter((u) => u.uid !== user?.uid)
+                .slice(0, 4)
+                .map((u) => (
+                  <div
+                    key={u.id}
+                    onClick={() => {
+                      setDialTarget(u.name);
+                    }}
+                    className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors text-left"
+                  >
+                    <img alt={u.name} src={u.avatarUrl} className="w-8 h-8 rounded-full object-cover" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-medium text-on-surface truncate">{u.name}</span>
+                      <span className="text-[10px] text-tertiary">Online</span>
+                    </div>
+                  </div>
+                ))}
             </div>
 
             <div className="grid grid-cols-2 gap-2 mt-2">
               <button
                 type="button"
                 onClick={() => {
+                  const targetUser = users.find((u) => u.name === dialTarget || u.username === dialTarget);
+                  const targetUid = targetUser?.uid || 'peer-id';
+                  const targetName = targetUser?.name || dialTarget || 'Operative';
+                  const targetAvatar = targetUser?.avatarUrl || '';
+
                   setDialerOpen(false);
-                  handleStartCall(
-                    dialTarget || 'Sarah Chen',
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA',
-                    'dial-target',
-                    'audio'
-                  );
+                  handleStartCall(targetName, targetAvatar, targetUid, 'audio');
                 }}
                 className="py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-primary font-label-md text-xs font-semibold flex items-center justify-center gap-1 shadow-sm"
               >
@@ -380,154 +277,19 @@ export default function CallLogsPage() {
               <button
                 type="button"
                 onClick={() => {
+                  const targetUser = users.find((u) => u.name === dialTarget || u.username === dialTarget);
+                  const targetUid = targetUser?.uid || 'peer-id';
+                  const targetName = targetUser?.name || dialTarget || 'Operative';
+                  const targetAvatar = targetUser?.avatarUrl || '';
+
                   setDialerOpen(false);
-                  handleStartCall(
-                    dialTarget || 'Sarah Chen',
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA',
-                    'dial-target',
-                    'video'
-                  );
+                  handleStartCall(targetName, targetAvatar, targetUid, 'video');
                 }}
                 className="py-2.5 rounded-xl bg-primary-container text-on-primary-container font-label-md text-xs font-semibold flex items-center justify-center gap-1 shadow-md"
               >
                 <span className="material-symbols-outlined text-sm">videocam</span>
                 Video Call
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Real Live Call Overlay */}
-      {activeCallTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl animate-fade-in">
-          <div className="relative w-full max-w-md bg-surface-container rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center justify-between text-center border border-surface-container-highest min-h-[540px]">
-            {/* Header */}
-            <div className="w-full p-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/80 to-transparent">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-error animate-ping" />
-                <span className="text-xs uppercase tracking-widest text-primary font-mono font-bold">
-                  {activeCallTarget.type === 'video' ? 'Live Video Mesh' : 'Live Audio Mesh'}
-                </span>
-              </div>
-              <span className="text-sm font-mono text-tertiary bg-black/40 px-3 py-1 rounded-full border border-surface-container-highest">
-                {formatDuration(callDuration)}
-              </span>
-            </div>
-
-            {/* Video Canvas or Audio Visualizer */}
-            {activeCallTarget.type === 'video' ? (
-              <div className="relative w-full flex-1 bg-black flex items-center justify-center overflow-hidden min-h-[340px]">
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : ''}`}
-                />
-
-                {isVideoOff && (
-                  <div className="flex flex-col items-center gap-3">
-                    <img
-                      alt={activeCallTarget.name}
-                      className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/40 shadow-2xl"
-                      src={activeCallTarget.avatarUrl}
-                    />
-                    <span className="text-xs text-on-surface-variant font-mono">Camera Paused</span>
-                  </div>
-                )}
-
-                {/* Picture-in-picture peer */}
-                <div className="absolute top-4 right-4 w-28 h-36 rounded-2xl overflow-hidden bg-surface-container-high border-2 border-primary/50 shadow-2xl flex flex-col items-center justify-center p-2 z-10 backdrop-blur-md">
-                  <img
-                    alt={activeCallTarget.name}
-                    className="w-12 h-12 rounded-full object-cover ring-2 ring-primary mb-1"
-                    src={activeCallTarget.avatarUrl}
-                  />
-                  <span className="text-[10px] text-white font-semibold truncate w-full text-center">
-                    {activeCallTarget.name}
-                  </span>
-                  <span className="text-[9px] text-tertiary font-mono">Encrypted</span>
-                </div>
-
-                {streamError && (
-                  <div className="absolute bottom-4 left-4 right-4 bg-error/90 text-white p-2 rounded-xl text-xs font-mono">
-                    {streamError}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="relative flex-1 flex flex-col items-center justify-center gap-5 p-6">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                  <img
-                    alt={activeCallTarget.name}
-                    className="w-28 h-28 rounded-full object-cover ring-4 ring-primary/40 relative z-10 shadow-2xl"
-                    src={activeCallTarget.avatarUrl}
-                  />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <h3 className="text-xl font-bold text-on-surface">{activeCallTarget.name}</h3>
-                  <span className="text-xs text-on-surface-variant font-mono">Quantum Audio Mesh Connected</span>
-                </div>
-
-                <div className="flex items-center gap-1.5 h-10">
-                  {[20, 45, 80, 60, 95, 40, 75, 50, 90, 30].map((h, i) => (
-                    <div
-                      key={i}
-                      style={{ height: `${h * 0.4}px` }}
-                      className="w-1.5 rounded-full bg-primary animate-pulse"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Controls */}
-            <div className="w-full p-6 bg-surface-container-high flex items-center justify-center gap-4 z-20 border-t border-surface-container-highest">
-              <button
-                type="button"
-                onClick={toggleMute}
-                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${
-                  isMuted ? 'bg-error text-white' : 'bg-surface-container text-on-surface hover:bg-surface-bright'
-                }`}
-                title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
-              >
-                <span className="material-symbols-outlined">{isMuted ? 'mic_off' : 'mic'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={endCall}
-                className="w-16 h-16 rounded-full bg-error text-white flex items-center justify-center shadow-2xl active:scale-95 hover:bg-error/90 transition-transform"
-                title="End Call"
-              >
-                <span className="material-symbols-outlined text-3xl">call_end</span>
-              </button>
-
-              {activeCallTarget.type === 'video' ? (
-                <button
-                  type="button"
-                  onClick={toggleVideo}
-                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${
-                    isVideoOff
-                      ? 'bg-error text-white'
-                      : 'bg-surface-container text-on-surface hover:bg-surface-bright'
-                  }`}
-                  title={isVideoOff ? 'Turn camera on' : 'Turn camera off'}
-                >
-                  <span className="material-symbols-outlined">{isVideoOff ? 'videocam_off' : 'videocam'}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => alert('Speakerphone audio routing active.')}
-                  className="w-12 h-12 rounded-full bg-surface-container text-on-surface flex items-center justify-center shadow-lg active:scale-95 hover:bg-surface-bright transition-all"
-                  title="Speakerphone"
-                >
-                  <span className="material-symbols-outlined">volume_up</span>
-                </button>
-              )}
             </div>
           </div>
         </div>

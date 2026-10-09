@@ -23,6 +23,7 @@ import {
   markFirestoreMessagesAsRead,
   addFirestoreReaction,
   createOrGetDirectChat,
+  getDirectChatId,
 } from '@/lib/db';
 import { useAuth } from './AuthContext';
 
@@ -70,6 +71,15 @@ function formatFirestoreTimestamp(ts: any): string {
   return 'Just now';
 }
 
+function parseRawTimestamp(ts: any): number {
+  if (!ts) return Date.now();
+  if (ts instanceof Timestamp) return ts.toMillis();
+  if (ts?.toMillis) return ts.toMillis();
+  if (typeof ts === 'number') return ts;
+  if (typeof ts === 'string') return new Date(ts).getTime();
+  return Date.now();
+}
+
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [allChats, setAllChats] = useState<FirestoreChat[]>([]);
@@ -82,34 +92,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. Real-Time Listener for All Active Chats in Firestore
+  // 1. Real-Time Listener for All Active Users in Firestore
   useEffect(() => {
-    setIsLoadingChats(true);
-    const chatsCollectionRef = collection(db, 'chats');
-    const q = query(chatsCollectionRef, orderBy('updatedAt', 'desc'));
-
-    const unsubscribeChats = onSnapshot(
-      q,
-      (snapshot) => {
-        const loadedChats: FirestoreChat[] = snapshot.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            ...data,
-            lastMessageTime: formatFirestoreTimestamp(data.lastMessageTime || data.updatedAt),
-          } as FirestoreChat;
-        });
-
-        setAllChats(loadedChats);
-        setIsLoadingChats(false);
-      },
-      (error) => {
-        console.warn('Chats listener error (collection may be initializing):', error);
-        setIsLoadingChats(false);
-      }
-    );
-
-    // 2. Real-Time Listener for All Users in Firestore (for direct messaging)
     const usersCollectionRef = collection(db, 'users');
     const unsubscribeUsers = onSnapshot(usersCollectionRef, (snapshot) => {
       const loadedUsers = snapshot.docs.map((d) => ({
@@ -120,12 +104,73 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      unsubscribeChats();
       unsubscribeUsers();
     };
   }, []);
 
-  // 3. Real-Time Multi-Device Listener for Selected Chat Messages
+  // 2. Real-Time Listener for Private 1-on-1 Direct Chats for current user
+  useEffect(() => {
+    if (!user?.uid) {
+      setAllChats([]);
+      return;
+    }
+
+    setIsLoadingChats(true);
+    const chatsCollectionRef = collection(db, 'chats');
+    const q = query(
+      chatsCollectionRef,
+      where('participants', 'array-contains', user.uid)
+    );
+
+    const unsubscribeChats = onSnapshot(
+      q,
+      (snapshot) => {
+        const loadedChats: FirestoreChat[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          const otherParticipantId = data.participants?.find((p: string) => p !== user.uid);
+          const otherUser = allUsers.find((u) => u.uid === otherParticipantId);
+
+          const chatName =
+            data.type === 'group'
+              ? data.name
+              : otherUser?.name || data.name || 'Direct Message';
+          const chatAvatar =
+            data.type === 'group'
+              ? data.avatarUrl
+              : otherUser?.avatarUrl || data.avatarUrl;
+
+          return {
+            id: d.id,
+            ...data,
+            name: chatName,
+            avatarUrl: chatAvatar,
+            isOnline: otherUser ? otherUser.isOnline : data.isOnline,
+            lastMessageTime: formatFirestoreTimestamp(data.lastMessageTime || data.updatedAt),
+          } as FirestoreChat;
+        });
+
+        // Sort descending by updated timestamp
+        loadedChats.sort((a, b) => {
+          const timeA = parseRawTimestamp(a.updatedAt || a.lastMessageTime);
+          const timeB = parseRawTimestamp(b.updatedAt || b.lastMessageTime);
+          return timeB - timeA;
+        });
+
+        setAllChats(loadedChats);
+        setIsLoadingChats(false);
+      },
+      (error) => {
+        console.warn('Chats listener error:', error);
+        setIsLoadingChats(false);
+      }
+    );
+
+    return () => {
+      unsubscribeChats();
+    };
+  }, [user?.uid, allUsers]);
+
+  // 3. Real-Time Multi-Device Listener for Selected 1-on-1 Chat Messages
   useEffect(() => {
     if (!activeChatId) {
       setMessages([]);
@@ -134,22 +179,45 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     setIsLoadingMessages(true);
 
-    // Also sync activeChat metadata
+    // Sync activeChat metadata
     const chatDocRef = doc(db, 'chats', activeChatId);
     const unsubscribeChatDoc = onSnapshot(chatDocRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
+        const otherParticipantId = data.participants?.find((p: string) => p !== user?.uid);
+        const otherUser = allUsers.find((u) => u.uid === otherParticipantId);
+
         setActiveChat({
           id: snap.id,
           ...data,
+          name: data.type === 'group' ? data.name : otherUser?.name || data.name || 'Contact',
+          avatarUrl: data.type === 'group' ? data.avatarUrl : otherUser?.avatarUrl || data.avatarUrl,
+          isOnline: otherUser ? otherUser.isOnline : data.isOnline,
           lastMessageTime: formatFirestoreTimestamp(data.lastMessageTime),
         } as FirestoreChat);
+      } else {
+        // Chat document doesn't exist yet in Firestore; parse deterministic ID [u1, u2]
+        const parts = activeChatId.split('_');
+        const otherId = parts.find((p) => p !== user?.uid);
+        const otherUser = allUsers.find((u) => u.uid === otherId);
+
+        if (otherUser) {
+          setActiveChat({
+            id: activeChatId,
+            type: 'direct',
+            name: otherUser.name,
+            avatarUrl: otherUser.avatarUrl,
+            roleBadge: otherUser.role || 'Operative',
+            isOnline: otherUser.isOnline,
+            participants: [user?.uid || '', otherUser.uid],
+          } as FirestoreChat);
+        }
       }
     });
 
-    // Query messages sub-collection ordered by timestamp asc
+    // Query messages sub-collection strictly ordered by createdAt ascending
     const messagesRef = collection(db, 'chats', activeChatId, 'messages');
-    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+    const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
     const unsubscribeMessages = onSnapshot(
       q,
@@ -163,6 +231,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           if (!isSelf && data.status !== 'read') {
             hasUnreadForMe = true;
           }
+
+          const msgTs = data.createdAt || data.timestamp;
 
           return {
             id: d.id,
@@ -181,10 +251,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             status: data.status || 'delivered',
             reactions: data.reactions || {},
             replyTo: data.replyTo,
-            timestamp: formatFirestoreTimestamp(data.timestamp),
+            timestamp: formatFirestoreTimestamp(msgTs),
+            createdAt: parseRawTimestamp(msgTs),
             isSelf,
           };
         });
+
+        // Ensure strictly chronological sorting (oldest first, newest last)
+        loadedMsgs.sort((a, b) => a.createdAt - b.createdAt);
 
         setMessages(loadedMsgs);
         setIsLoadingMessages(false);
@@ -204,7 +278,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       unsubscribeChatDoc();
       unsubscribeMessages();
     };
-  }, [activeChatId, user?.uid]);
+  }, [activeChatId, user?.uid, allUsers]);
 
   const selectChat = (chatId: string) => {
     setActiveChatId(chatId);
@@ -237,11 +311,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (!activeChatId || !user) return;
 
     try {
+      const parts = activeChatId.split('_');
+      const receiverId =
+        parts.find((p) => p !== user.uid) ||
+        activeChat?.participants?.find((p) => p !== user.uid) ||
+        '';
+
       await sendFirestoreMessage(activeChatId, {
         senderId: user.uid,
         senderName: user.name || user.username || 'Nexus Operative',
         senderAvatar: user.avatarUrl,
-        receiverId: activeChat?.participants?.find((p) => p !== user.uid) || '',
+        receiverId,
         content,
         type,
         mediaUrl,

@@ -62,6 +62,7 @@ export interface FirestoreMessage {
     content: string;
   };
   timestamp?: any;
+  createdAt?: any;
   isSelf?: boolean;
 }
 
@@ -94,7 +95,32 @@ export interface FirestoreStory {
   mediaUrl: string;
   caption: string;
   timestamp?: any;
+  createdAt?: any;
   viewed?: boolean;
+}
+
+export interface FirestoreCall {
+  id: string;
+  callerId: string;
+  callerName: string;
+  callerAvatar: string;
+  receiverId: string;
+  receiverName: string;
+  receiverAvatar: string;
+  type: 'audio' | 'video';
+  status: 'pending' | 'connected' | 'rejected' | 'ended';
+  offer?: {
+    sdp?: string;
+    type?: 'offer' | 'answer' | 'pranswer' | 'rollback';
+  };
+  answer?: {
+    sdp?: string;
+    type?: 'offer' | 'answer' | 'pranswer' | 'rollback';
+  };
+  createdAt?: any;
+  connectedAt?: any;
+  endedAt?: any;
+  duration?: number; // in seconds
 }
 
 export interface FirestoreCallLog {
@@ -110,6 +136,7 @@ export interface FirestoreCallLog {
   status: 'connected' | 'missed' | 'rejected';
   duration: number; // in seconds
   timestamp?: any;
+  createdAt?: any;
 }
 
 // ----------------- Dynamic Firestore Services -----------------
@@ -166,10 +193,14 @@ export async function updateFirestoreUserStatus(userId: string, isOnline: boolea
   }
 }
 
+// Generate Deterministic 1-on-1 Direct Chat ID: [userA, userB].sort().join("_")
+export function getDirectChatId(userId1: string, userId2: string): string {
+  return [userId1, userId2].sort().join('_');
+}
+
 // Chat Operations
 export async function createOrGetDirectChat(currentUser: FirestoreUser, targetUser: FirestoreUser): Promise<FirestoreChat> {
-  const sortedIds = [currentUser.uid, targetUser.uid].sort();
-  const chatId = `dm_${sortedIds[0]}_${sortedIds[1]}`;
+  const chatId = getDirectChatId(currentUser.uid, targetUser.uid);
   const chatRef = doc(db, 'chats', chatId);
   const chatSnap = await getDoc(chatRef);
 
@@ -197,7 +228,7 @@ export async function createOrGetDirectChat(currentUser: FirestoreUser, targetUs
   return newChat;
 }
 
-// Send Message to Firestore Sub-Collection
+// Send Message to Firestore Sub-Collection with createdAt serverTimestamp()
 export async function sendFirestoreMessage(
   chatId: string,
   message: {
@@ -214,6 +245,8 @@ export async function sendFirestoreMessage(
   }
 ): Promise<string> {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
+  const nowTimestamp = serverTimestamp();
+
   const docRef = await addDoc(messagesRef, {
     chatId,
     senderId: message.senderId,
@@ -228,7 +261,8 @@ export async function sendFirestoreMessage(
     replyTo: message.replyTo || null,
     status: message.status || 'delivered',
     reactions: {},
-    timestamp: serverTimestamp(),
+    createdAt: nowTimestamp,
+    timestamp: nowTimestamp,
   });
 
   // Update parent chat snippet in real time
@@ -238,14 +272,21 @@ export async function sendFirestoreMessage(
   else if (message.type === 'voice') snippet = '🎙️ Voice note';
   else if (message.type === 'file') snippet = `📎 ${message.mediaMeta?.name || 'File attachment'}`;
 
+  const parts = chatId.split('_');
+  const chatParticipants =
+    parts.length === 2
+      ? parts
+      : [message.senderId, message.receiverId || ''].filter(Boolean);
+
   await setDoc(
     chatDocRef,
     {
       id: chatId,
       lastMessage: snippet,
-      lastMessageTime: serverTimestamp(),
+      lastMessageTime: nowTimestamp,
       lastSenderId: message.senderId,
-      updatedAt: serverTimestamp(),
+      participants: chatParticipants,
+      updatedAt: nowTimestamp,
     },
     { merge: true }
   );
@@ -261,7 +302,7 @@ export async function deleteFirestoreMessage(chatId: string, messageId: string):
   // Update lastMessage snippet in chat if needed
   try {
     const messagesRef = collection(db, 'chats', chatId, 'messages');
-    const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(1));
+    const q = query(messagesRef, orderBy('createdAt', 'desc'), limit(1));
     const latestSnap = await getDocs(q);
     const chatDocRef = doc(db, 'chats', chatId);
 
@@ -274,7 +315,7 @@ export async function deleteFirestoreMessage(chatId: string, messageId: string):
 
       await updateDoc(chatDocRef, {
         lastMessage: snippet,
-        lastMessageTime: lastMsg.timestamp || serverTimestamp(),
+        lastMessageTime: lastMsg.createdAt || lastMsg.timestamp || serverTimestamp(),
         lastSenderId: lastMsg.senderId,
         updatedAt: serverTimestamp(),
       });
@@ -329,9 +370,11 @@ export async function createFirestoreStory(story: {
   caption: string;
 }): Promise<string> {
   const storiesRef = collection(db, 'stories');
+  const now = serverTimestamp();
   const docRef = await addDoc(storiesRef, {
     ...story,
-    timestamp: serverTimestamp(),
+    createdAt: now,
+    timestamp: now,
   });
   return docRef.id;
 }
@@ -344,9 +387,11 @@ export async function deleteFirestoreStory(storyId: string): Promise<void> {
 // Call Log Operations
 export async function saveFirestoreCallLog(callLog: Omit<FirestoreCallLog, 'id' | 'timestamp'>): Promise<string> {
   const callsRef = collection(db, 'calls');
+  const now = serverTimestamp();
   const docRef = await addDoc(callsRef, {
     ...callLog,
-    timestamp: serverTimestamp(),
+    createdAt: now,
+    timestamp: now,
   });
   return docRef.id;
 }
