@@ -25,16 +25,15 @@ export const CopilotBanner: React.FC = () => {
         body: JSON.stringify({ prompt: q, mode }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setCopilotResponse(data.text || data.reply || 'Analysis completed.');
+      const data = await res.json();
+      if (res.ok && data?.text) {
+        setCopilotResponse(data.text);
       } else {
-        const data = await res.json().catch(() => null);
-        setCopilotResponse(data?.error || 'Gemini Copilot ready. Please verify network or API key configuration.');
+        setCopilotResponse(data?.error || 'Gemini Copilot ready. Please verify GEMINI_API_KEY in environment.');
       }
     } catch (err: any) {
       console.error('Copilot request error:', err);
-      setCopilotResponse('Gemini AI assistant processed your request.');
+      setCopilotResponse(`⚠️ Connection error: ${err?.message || 'Failed to reach /api/gemini'}`);
     } finally {
       setIsGenerating(false);
     }

@@ -410,7 +410,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         status: 'delivered',
       });
 
-      // Gemini AI Integration (@gemini or @ai)
+      // Gemini AI Integration (@gemini)
       const trimmed = content.trim();
       const isGeminiTrigger =
         trimmed.startsWith('@gemini') ||
@@ -420,56 +420,42 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (isGeminiTrigger && activeChatId) {
         setIsAiThinking(true);
 
-        let mode: 'chat' | 'summarize' | 'search' = 'chat';
-        let promptText = trimmed;
+        // 1. Extract the text after @gemini
+        const userQuery = trimmed.replace(/^@(gemini|ai)\s*/i, '').replace(/^gemini,\s*/i, '').trim();
 
-        if (
-          trimmed.toLowerCase().startsWith('@gemini summarize') ||
-          trimmed.toLowerCase().startsWith('@ai summarize')
-        ) {
-          mode = 'summarize';
-          promptText = 'Please summarize our conversation.';
-        } else if (
-          trimmed.toLowerCase().startsWith('@gemini search') ||
-          trimmed.toLowerCase().startsWith('@ai search')
-        ) {
-          mode = 'search';
-          promptText = trimmed.replace(/^@(gemini|ai)\s+search\s+/i, '').trim();
-        } else {
-          promptText = trimmed.replace(/^@(gemini|ai)\s+/i, '').trim();
-        }
-
-        // Invoke Gemini Server Endpoint
-        fetch('/api/gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: promptText,
-            mode,
-            history: messages.slice(-15),
-            roomName: activeChat?.name || 'Nexus Channel',
-          }),
-        })
-          .then((res) => res.json())
-          .then(async (data) => {
-            if (data?.text) {
-              await sendFirestoreMessage(activeChatId, {
-                senderId: 'gemini-ai',
-                senderName: 'Gemini AI',
-                senderAvatar: 'https://cdn.worldvectorlogo.com/logos/google-gemini-icon.svg',
-                receiverId: user.uid,
-                content: data.text,
-                type: 'ai',
-                status: 'delivered',
-              });
-            }
-          })
-          .catch((err) => {
-            console.error('Error fetching Gemini response:', err);
-          })
-          .finally(() => {
-            setIsAiThinking(false);
+        try {
+          // 2. Send POST request to /api/gemini
+          const res = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: userQuery || 'Hello',
+              roomContext: messages.slice(-15),
+              history: messages.slice(-15),
+              roomName: activeChat?.name || 'Direct Chat',
+            }),
           });
+
+          const data = await res.json();
+          const responseText = data?.text || (data?.error ? `⚠️ ${data.error}` : null);
+
+          // 3. Save data.text directly into Firestore under Gemini AI
+          if (responseText) {
+            await sendFirestoreMessage(activeChatId, {
+              senderId: 'gemini-ai',
+              senderName: 'Gemini AI',
+              senderAvatar: 'https://cdn.worldvectorlogo.com/logos/google-gemini-icon.svg',
+              receiverId: user.uid,
+              content: responseText,
+              type: 'ai',
+              status: 'delivered',
+            });
+          }
+        } catch (err) {
+          console.error('Error executing Gemini API call:', err);
+        } finally {
+          setIsAiThinking(false);
+        }
       }
     } catch (err) {
       console.error('Error sending message to Firestore:', err);
