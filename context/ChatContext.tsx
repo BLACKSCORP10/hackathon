@@ -24,6 +24,7 @@ import {
   addFirestoreReaction,
   createOrGetDirectChat,
   getDirectChatId,
+  updateFirestoreUserProfile,
 } from '@/lib/db';
 import { useAuth } from './AuthContext';
 
@@ -35,6 +36,7 @@ interface ChatContextType {
   messages: FirestoreMessage[];
   isLoadingChats: boolean;
   isLoadingMessages: boolean;
+  isAiThinking: boolean;
   activeFilter: string;
   searchQuery: string;
   unreadTotal: number;
@@ -44,13 +46,21 @@ interface ChatContextType {
   startChatWithUser: (targetUser: FirestoreUser) => Promise<string>;
   sendMessage: (
     content: string,
-    type?: 'text' | 'image' | 'voice' | 'code' | 'file',
+    type?: 'text' | 'image' | 'voice' | 'code' | 'file' | 'ai',
     mediaUrl?: string,
     mediaMeta?: any
   ) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
   markAsRead: (chatId?: string) => Promise<void>;
   reactToMessage: (messageId: string, emoji: string) => Promise<void>;
+  updateProfile: (profile: {
+    name?: string;
+    bio?: string;
+    statusText?: string;
+    avatarUrl?: string;
+    username?: string;
+    phone?: string;
+  }) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -89,6 +99,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<FirestoreMessage[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isAiThinking, setIsAiThinking] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -228,6 +239,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const loadedMsgs: FirestoreMessage[] = snapshot.docs.map((d) => {
           const data = d.data();
           const isSelf = data.senderId === currentUid;
+          const isAi = data.isAi || data.senderId === 'gemini-ai' || data.type === 'ai';
+
           if (!isSelf && data.status !== 'read') {
             hasUnreadForMe = true;
           }
@@ -238,15 +251,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             id: d.id,
             chatId: activeChatId,
             senderId: data.senderId,
-            senderName: data.senderName || 'Anonymous',
+            senderName: data.senderName || (isAi ? 'Gemini AI' : 'Anonymous'),
             senderAvatar:
               data.senderAvatar ||
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA',
+              (isAi
+                ? 'https://cdn.worldvectorlogo.com/logos/google-gemini-icon.svg'
+                : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA'),
             receiverId: data.receiverId,
             content: data.content || data.text || '',
             text: data.text || data.content || '',
-            type: data.type || 'text',
+            type: data.type || (isAi ? 'ai' : 'text'),
             mediaUrl: data.mediaUrl,
+            mediaType: data.mediaType,
             mediaMeta: data.mediaMeta,
             status: data.status || 'delivered',
             reactions: data.reactions || {},
@@ -254,6 +270,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             timestamp: formatFirestoreTimestamp(msgTs),
             createdAt: parseRawTimestamp(msgTs),
             isSelf,
+            isAi,
           };
         });
 
@@ -302,9 +319,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return createdChat.id;
   };
 
+  const updateProfile = async (profile: {
+    name?: string;
+    bio?: string;
+    statusText?: string;
+    avatarUrl?: string;
+    username?: string;
+    phone?: string;
+  }) => {
+    if (!user) throw new Error('Must be authenticated');
+    await updateFirestoreUserProfile(user.uid, profile);
+  };
+
   const sendMessage = async (
     content: string,
-    type: 'text' | 'image' | 'voice' | 'code' | 'file' = 'text',
+    type: 'text' | 'image' | 'voice' | 'code' | 'file' | 'ai' = 'text',
     mediaUrl?: string,
     mediaMeta?: any
   ) => {
@@ -328,6 +357,68 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         mediaMeta,
         status: 'delivered',
       });
+
+      // Gemini AI Integration (@gemini or @ai)
+      const trimmed = content.trim();
+      const isGeminiTrigger =
+        trimmed.startsWith('@gemini') ||
+        trimmed.startsWith('@ai') ||
+        trimmed.toLowerCase().startsWith('gemini,');
+
+      if (isGeminiTrigger && activeChatId) {
+        setIsAiThinking(true);
+
+        let mode: 'chat' | 'summarize' | 'search' = 'chat';
+        let promptText = trimmed;
+
+        if (
+          trimmed.toLowerCase().startsWith('@gemini summarize') ||
+          trimmed.toLowerCase().startsWith('@ai summarize')
+        ) {
+          mode = 'summarize';
+          promptText = 'Please summarize our conversation.';
+        } else if (
+          trimmed.toLowerCase().startsWith('@gemini search') ||
+          trimmed.toLowerCase().startsWith('@ai search')
+        ) {
+          mode = 'search';
+          promptText = trimmed.replace(/^@(gemini|ai)\s+search\s+/i, '').trim();
+        } else {
+          promptText = trimmed.replace(/^@(gemini|ai)\s+/i, '').trim();
+        }
+
+        // Invoke Gemini Server Endpoint
+        fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: promptText,
+            mode,
+            history: messages.slice(-15),
+            roomName: activeChat?.name || 'Nexus Channel',
+          }),
+        })
+          .then((res) => res.json())
+          .then(async (data) => {
+            if (data?.text) {
+              await sendFirestoreMessage(activeChatId, {
+                senderId: 'gemini-ai',
+                senderName: 'Gemini AI',
+                senderAvatar: 'https://cdn.worldvectorlogo.com/logos/google-gemini-icon.svg',
+                receiverId: user.uid,
+                content: data.text,
+                type: 'ai',
+                status: 'delivered',
+              });
+            }
+          })
+          .catch((err) => {
+            console.error('Error fetching Gemini response:', err);
+          })
+          .finally(() => {
+            setIsAiThinking(false);
+          });
+      }
     } catch (err) {
       console.error('Error sending message to Firestore:', err);
       throw err;
@@ -388,6 +479,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         messages,
         isLoadingChats,
         isLoadingMessages,
+        isAiThinking,
         activeFilter,
         searchQuery,
         unreadTotal,
@@ -399,6 +491,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         deleteMessage,
         markAsRead,
         reactToMessage,
+        updateProfile,
       }}
     >
       {children}

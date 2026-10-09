@@ -5,6 +5,7 @@ import { ChatProvider } from '@/context/ChatContext';
 import { CallProvider } from '@/context/CallContext';
 import { IncomingCallModal } from '@/components/call/IncomingCallModal';
 import { ActiveCallModal } from '@/components/call/ActiveCallModal';
+import { SplashScreen } from '@/components/ui/SplashScreen';
 
 export const metadata: Metadata = {
   title: 'NexusChat - Quantum-Grade Encrypted Messaging',
@@ -18,7 +19,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#10131a',
+  themeColor: '#020617',
 };
 
 export default function RootLayout({
@@ -34,7 +35,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-surface font-sans text-body-md text-on-surface flex flex-col min-h-screen selection:bg-primary/20 selection:text-primary">
+      <body className="bg-slate-950 font-sans text-slate-100 flex flex-col min-h-screen selection:bg-indigo-500/30 selection:text-indigo-200">
+        <SplashScreen />
         <AuthProvider>
           <ChatProvider>
             <CallProvider>

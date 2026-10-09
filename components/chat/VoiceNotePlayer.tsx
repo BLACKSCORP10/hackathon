@@ -64,15 +64,17 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
         setIsPlaying(false);
       } else {
         audioRef.current.playbackRate = speed;
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-        }).catch((err) => {
-          console.warn('Audio play prevented or format error:', err);
-          simulatePlayback();
-        });
+        audioRef.current
+          .play()
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((err) => {
+            console.warn('Audio play notice:', err);
+            simulatePlayback();
+          });
       }
     } else {
-      // Fallback if no media URL attached
       simulatePlayback();
     }
   };
@@ -127,14 +129,14 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
   };
 
   return (
-    <div className="bg-surface-container/90 backdrop-blur-md p-3 rounded-2xl rounded-tl-sm shadow-md w-full flex flex-col gap-2 border border-surface-container-highest/40">
+    <div className="bg-slate-900/80 backdrop-blur-xl p-3.5 rounded-3xl rounded-tl-sm shadow-xl w-full flex flex-col gap-2 border border-white/10">
       <div className="flex items-center gap-3">
         {/* Play / Pause Toggle */}
         <button
           type="button"
           onClick={togglePlay}
           aria-label={isPlaying ? 'Pause voice message' : 'Play voice message'}
-          className="w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-transform flex-shrink-0"
+          className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform flex-shrink-0"
         >
           <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
             {isPlaying ? 'pause' : 'play_arrow'}
@@ -155,7 +157,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
                   key={i}
                   style={{ height: `${Math.max(10, (height / 100) * 28)}px` }}
                   className={`w-1 rounded-full transition-all duration-100 ${
-                    isPast ? 'bg-primary' : 'bg-outline-variant/60 group-hover:bg-outline-variant'
+                    isPast ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]' : 'bg-slate-700/60 group-hover:bg-slate-600'
                   }`}
                 />
               );
@@ -163,9 +165,9 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
           </div>
 
           {/* Time & Speed Metadata */}
-          <div className="flex items-center justify-between text-on-surface-variant font-mono text-[11px]">
+          <div className="flex items-center justify-between text-slate-400 font-mono text-[11px]">
             <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[13px] text-tertiary">graphic_eq</span>
+              <span className="material-symbols-outlined text-[13px] text-emerald-400">graphic_eq</span>
               <span>
                 {isPlaying ? currentTimeFormatted : '0:00'} / {totalDurationFormatted}
               </span>
@@ -173,7 +175,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
             <button
               type="button"
               onClick={toggleSpeed}
-              className="px-2 py-0.5 rounded-full bg-surface-container-high text-primary hover:bg-surface-bright font-label-sm text-[11px] font-bold transition-colors"
+              className="px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-cyan-400 font-mono text-[11px] font-bold transition-colors border border-white/5"
             >
               {speed}x
             </button>
@@ -183,4 +185,3 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
     </div>
   );
 };
-

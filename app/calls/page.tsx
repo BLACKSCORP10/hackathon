@@ -94,19 +94,19 @@ export default function CallLogsPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-surface">
+    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
       <TopHeader title="NexusChat" subtitle="Encrypted Calls" />
 
       <main className="flex-1 flex flex-col pt-16 pb-24 max-w-4xl mx-auto w-full px-4 py-4 gap-4">
         {/* Filter Switcher */}
-        <div className="w-full p-1 bg-surface-container-lowest rounded-xl flex items-center shadow-inner border border-surface-container-highest/40">
+        <div className="w-full p-1 bg-slate-900/80 backdrop-blur-xl rounded-2xl flex items-center shadow-inner border border-white/10">
           <button
             type="button"
             onClick={() => setFilter('all')}
-            className={`flex-1 py-1.5 text-center font-label-md text-xs rounded-lg transition-all ${
+            className={`flex-1 py-2 text-center font-sans text-xs rounded-xl transition-all ${
               filter === 'all'
-                ? 'bg-primary-container text-on-primary-container shadow-md font-semibold'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 font-semibold border border-indigo-400/30'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             All Calls ({displayLogs.length})
@@ -114,10 +114,10 @@ export default function CallLogsPage() {
           <button
             type="button"
             onClick={() => setFilter('missed')}
-            className={`flex-1 py-1.5 text-center font-label-md text-xs rounded-lg transition-all ${
+            className={`flex-1 py-2 text-center font-sans text-xs rounded-xl transition-all ${
               filter === 'missed'
-                ? 'bg-primary-container text-on-primary-container shadow-md font-semibold'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 font-semibold border border-indigo-400/30'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             Missed (0)
@@ -125,7 +125,7 @@ export default function CallLogsPage() {
         </div>
 
         {/* Call Logs Feed */}
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-2.5">
           {filteredLogs.map((log) => {
             const isMissed = log.status === 'missed';
             const targetName = log.callerId === user?.uid ? log.receiverName : log.callerName;
@@ -135,13 +135,13 @@ export default function CallLogsPage() {
             return (
               <div
                 key={log.id}
-                className="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors border border-surface-container-highest/30 shadow-sm"
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/60 hover:bg-slate-800/80 backdrop-blur-xl transition-all duration-200 border border-white/5 hover:border-indigo-500/30 shadow-lg"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-3.5 min-w-0">
                   <div className="relative shrink-0">
                     <img
                       alt={targetName}
-                      className="w-11 h-11 rounded-full object-cover ring-1 ring-surface-container-highest"
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-white/10 bg-slate-800"
                       src={
                         targetAvatar ||
                         'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA'
@@ -150,16 +150,16 @@ export default function CallLogsPage() {
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span
-                      className={`font-headline-md text-sm font-semibold truncate ${
-                        isMissed ? 'text-error' : 'text-on-surface'
+                      className={`text-sm font-bold truncate ${
+                        isMissed ? 'text-rose-400' : 'text-slate-100'
                       }`}
                     >
                       {targetName}
                     </span>
-                    <div className="flex items-center gap-1.5 text-xs text-on-surface-variant mt-0.5">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
                       <span
-                        className={`material-symbols-outlined text-[14px] ${
-                          isMissed ? 'text-error' : 'text-tertiary'
+                        className={`material-symbols-outlined text-[15px] ${
+                          isMissed ? 'text-rose-400' : 'text-emerald-400'
                         }`}
                       >
                         {log.direction === 'incoming'
@@ -168,9 +168,9 @@ export default function CallLogsPage() {
                           ? 'call_made'
                           : 'call_missed'}
                       </span>
-                      <span>Open Relay WebRTC</span>
+                      <span className="font-mono text-[11px]">Open Relay TURN</span>
                       {log.duration > 0 && (
-                        <span className="font-mono text-[10px] bg-surface-container px-1.5 py-0.5 rounded text-tertiary">
+                        <span className="font-mono text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-emerald-400 border border-white/5">
                           {formatDuration(log.duration)}
                         </span>
                       )}
@@ -189,10 +189,10 @@ export default function CallLogsPage() {
                         log.type === 'video' ? 'video' : 'audio'
                       )
                     }
-                    className="w-9 h-9 rounded-full bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-primary active:scale-95 transition-all shadow-sm"
+                    className="w-10 h-10 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white flex items-center justify-center active:scale-95 transition-all shadow-md border border-indigo-500/30"
                     title={`Start ${log.type} call`}
                   >
-                    <span className="material-symbols-outlined text-[18px]">
+                    <span className="material-symbols-outlined text-[19px]">
                       {log.type === 'video' ? 'videocam' : 'call'}
                     </span>
                   </button>
@@ -207,32 +207,32 @@ export default function CallLogsPage() {
       <button
         type="button"
         onClick={() => setDialerOpen(true)}
-        className="fixed right-6 bottom-20 z-40 w-14 h-14 rounded-2xl bg-gradient-to-tr from-secondary-container to-primary-container text-on-primary flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
+        className="fixed right-6 bottom-20 z-40 w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-2xl shadow-indigo-600/50 active:scale-95 transition-transform"
       >
         <span className="material-symbols-outlined text-2xl">add_call</span>
       </button>
 
       {/* Quick Dialer Modal */}
       {dialerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-sm bg-surface-container rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-center border border-surface-container-highest">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in">
+          <div className="relative w-full max-w-sm bg-slate-900/90 backdrop-blur-2xl rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-center border border-white/10">
             <button
               type="button"
               onClick={() => setDialerOpen(false)}
-              className="absolute top-4 right-4 text-outline hover:text-on-surface"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 transition-colors"
             >
               <span className="material-symbols-outlined text-xl">close</span>
             </button>
 
-            <h3 className="font-headline-md text-on-surface font-semibold">Start WebRTC Call</h3>
-            <p className="text-xs text-on-surface-variant">Select an active node or contact</p>
+            <h3 className="text-base font-bold text-slate-100">Start WebRTC Call</h3>
+            <p className="text-xs text-slate-400">Select an active node or contact</p>
 
             <input
               type="text"
               placeholder="@handle or name..."
               value={dialTarget}
               onChange={(e) => setDialTarget(e.target.value)}
-              className="w-full bg-surface-container-low text-on-surface text-center font-mono text-sm py-2.5 rounded-xl border border-surface-container-highest focus:outline-none focus:border-primary"
+              className="w-full bg-slate-950/70 text-slate-100 text-center font-mono text-sm py-2.5 rounded-2xl border border-white/10 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
 
             {/* Online Contacts Selector */}
@@ -246,12 +246,12 @@ export default function CallLogsPage() {
                     onClick={() => {
                       setDialTarget(u.name);
                     }}
-                    className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors text-left"
+                    className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 cursor-pointer transition-colors text-left border border-white/5"
                   >
-                    <img alt={u.name} src={u.avatarUrl} className="w-8 h-8 rounded-full object-cover" />
+                    <img alt={u.name} src={u.avatarUrl} className="w-8 h-8 rounded-full object-cover bg-slate-700" />
                     <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-medium text-on-surface truncate">{u.name}</span>
-                      <span className="text-[10px] text-tertiary">Online</span>
+                      <span className="text-xs font-semibold text-slate-200 truncate">{u.name}</span>
+                      <span className="text-[10px] text-emerald-400 font-mono">Online</span>
                     </div>
                   </div>
                 ))}
@@ -269,7 +269,7 @@ export default function CallLogsPage() {
                   setDialerOpen(false);
                   handleStartCall(targetName, targetAvatar, targetUid, 'audio');
                 }}
-                className="py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-primary font-label-md text-xs font-semibold flex items-center justify-center gap-1 shadow-sm"
+                className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold text-xs flex items-center justify-center gap-1 shadow-sm border border-white/5"
               >
                 <span className="material-symbols-outlined text-sm">call</span>
                 Audio Call
@@ -285,7 +285,7 @@ export default function CallLogsPage() {
                   setDialerOpen(false);
                   handleStartCall(targetName, targetAvatar, targetUid, 'video');
                 }}
-                className="py-2.5 rounded-xl bg-primary-container text-on-primary-container font-label-md text-xs font-semibold flex items-center justify-center gap-1 shadow-md"
+                className="py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs flex items-center justify-center gap-1 shadow-lg shadow-indigo-600/30"
               >
                 <span className="material-symbols-outlined text-sm">videocam</span>
                 Video Call

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useCall } from '@/context/CallContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -8,37 +8,47 @@ export const ActiveCallModal: React.FC = () => {
   const { user } = useAuth();
   const {
     activeCall,
-    localStream,
-    remoteStream,
     callDuration,
     isMuted,
     isVideoOff,
     isScreenSharing,
     streamError,
+    mountCallFrame,
     endCall,
     toggleMute,
     toggleVideo,
     toggleScreenShare,
   } = useCall();
 
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const dailyContainerRef = useRef<HTMLDivElement | null>(null);
+  const [frameMounted, setFrameMounted] = useState(false);
 
-  // Attach local stream
+  // Mount Daily Call Frame into container when call is active
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-      localVideoRef.current.play().catch((e) => console.warn('Local video play warning:', e));
-    }
-  }, [localStream, isVideoOff]);
+    let mounted = true;
 
-  // Attach remote stream
-  useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch((e) => console.warn('Remote video play warning:', e));
+    if (activeCall && dailyContainerRef.current && !frameMounted) {
+      // If call is pending (caller waiting for answer), we can mount early or wait for connected
+      mountCallFrame(dailyContainerRef.current)
+        .then(() => {
+          if (mounted) setFrameMounted(true);
+        })
+        .catch((err) => {
+          console.warn('Daily frame mount notice:', err);
+        });
     }
-  }, [remoteStream]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeCall, mountCallFrame, frameMounted]);
+
+  // Reset mounted state when activeCall clears
+  useEffect(() => {
+    if (!activeCall) {
+      setFrameMounted(false);
+    }
+  }, [activeCall]);
 
   if (!activeCall) return null;
 
@@ -55,184 +65,153 @@ export const ActiveCallModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl animate-fade-in">
-      <div className="relative w-full max-w-lg bg-surface-container rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center justify-between text-center border border-surface-container-highest min-h-[580px] max-h-[90vh]">
-        {/* Call Header */}
-        <div className="w-full p-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/90 to-transparent">
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                isConnecting ? 'bg-amber-400 animate-ping' : 'bg-tertiary animate-pulse'
-              }`}
-            />
-            <span className="text-xs uppercase tracking-widest text-primary font-mono font-bold">
-              {isVideo ? 'WebRTC HD Video' : 'WebRTC Encrypted Audio'}
-            </span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/95 backdrop-blur-2xl animate-fade-in">
+      <div className="relative w-full max-w-4xl h-[92vh] max-h-[820px] bg-surface-container rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center justify-between border border-surface-container-highest">
+        {/* Top Header Bar */}
+        <div className="w-full px-5 py-3 flex items-center justify-between z-20 bg-surface-container-low/95 backdrop-blur-md border-b border-surface-container-highest/60">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <img
+                alt={peerName}
+                src={
+                  peerAvatar ||
+                  'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA'
+                }
+                className="w-9 h-9 rounded-full object-cover ring-2 ring-primary/40"
+              />
+              <span
+                className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ${
+                  isConnecting ? 'bg-amber-400 animate-ping' : 'bg-tertiary animate-pulse'
+                }`}
+              />
+            </div>
+
+            <div className="flex flex-col text-left">
+              <span className="font-headline-md text-sm font-bold text-on-surface truncate max-w-[180px] sm:max-w-xs">
+                {peerName}
+              </span>
+              <span className="text-[11px] font-mono text-primary flex items-center gap-1">
+                <span className="material-symbols-outlined text-[13px] text-tertiary">lock</span>
+                {isVideo ? 'Daily.co HD Video Mesh' : 'Daily.co Encrypted Voice'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-tertiary bg-black/50 px-3 py-1 rounded-full border border-surface-container-highest">
-              {isConnecting ? 'Ringing / Connecting...' : formatDuration(callDuration)}
+            <span className="text-xs font-mono text-tertiary bg-surface-container-highest/60 px-3 py-1 rounded-full border border-surface-container-highest">
+              {isConnecting ? 'Ringing...' : formatDuration(callDuration)}
             </span>
+            <button
+              type="button"
+              onClick={endCall}
+              className="px-3.5 py-1.5 rounded-xl bg-error/90 hover:bg-error text-white font-label-md text-xs font-semibold flex items-center gap-1 shadow-md active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">call_end</span>
+              <span className="hidden sm:inline">Leave</span>
+            </button>
           </div>
         </div>
 
-        {/* Call Stage (Video Grid or Audio Waves) */}
-        {isVideo ? (
-          <div className="relative w-full flex-1 bg-black flex items-center justify-center overflow-hidden min-h-[380px]">
-            {/* Remote Video Stream (Main Window) */}
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
-
-            {/* If Remote Stream not arrived yet, show connecting avatar */}
-            {isConnecting && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/80 z-10">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                  <img
-                    alt={peerName}
-                    className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/40 shadow-2xl"
-                    src={peerAvatar}
-                  />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <h3 className="text-lg font-bold text-white">{peerName}</h3>
-                  <span className="text-xs text-primary font-mono animate-pulse">
-                    Connecting Open Relay TURN/STUN Peer...
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Local Video Stream (Picture-in-Picture) */}
-            <div className="absolute top-4 right-4 w-32 h-44 rounded-2xl overflow-hidden bg-surface-container-high border-2 border-primary/60 shadow-2xl z-20 backdrop-blur-md flex items-center justify-center">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : ''}`}
-              />
-              {isVideoOff && (
-                <div className="flex flex-col items-center justify-center gap-1 p-2">
-                  <span className="material-symbols-outlined text-outline text-2xl">videocam_off</span>
-                  <span className="text-[10px] text-on-surface-variant font-mono">Camera Off</span>
-                </div>
-              )}
-              <span className="absolute bottom-1 left-2 text-[9px] font-mono text-white/80 bg-black/50 px-1 rounded">
-                You
-              </span>
-            </div>
-
-            {streamError && (
-              <div className="absolute bottom-4 left-4 right-4 bg-error/90 text-white p-2.5 rounded-xl text-xs font-mono z-30">
-                {streamError}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="relative flex-1 flex flex-col items-center justify-center gap-6 p-6 w-full">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-primary/25 animate-ping" />
-              <img
-                alt={peerName}
-                className="w-32 h-32 rounded-full object-cover ring-4 ring-primary/50 relative z-10 shadow-2xl"
-                src={peerAvatar}
-              />
-            </div>
-
-            <div className="flex flex-col items-center gap-1">
-              <h3 className="text-2xl font-bold text-on-surface">{peerName}</h3>
-              <span className="text-xs text-on-surface-variant font-mono">
-                {isConnecting ? 'Ringing peer node...' : 'Open Relay Encrypted Mesh Connected'}
-              </span>
-            </div>
-
-            {/* Live Audio Visualizer Bars */}
-            <div className="flex items-center gap-1.5 h-12">
-              {[25, 50, 85, 45, 100, 60, 90, 35, 75, 50, 80, 40].map((h, i) => (
-                <div
-                  key={i}
-                  style={{ height: isConnecting ? '10px' : `${h * 0.45}px` }}
-                  className={`w-1.5 rounded-full ${
-                    isConnecting ? 'bg-outline/50' : 'bg-primary animate-pulse'
-                  } transition-all duration-200`}
+        {/* Embedded Daily Frame Stage */}
+        <div className="relative w-full flex-1 bg-[#080c14] flex items-center justify-center overflow-hidden">
+          {/* Waiting / Ringing Overlay if recipient hasn't answered yet */}
+          {isConnecting && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-black/85 z-20 p-6 text-center">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                <img
+                  alt={peerName}
+                  className="w-28 h-28 rounded-full object-cover ring-4 ring-primary/60 relative z-10 shadow-2xl"
+                  src={
+                    peerAvatar ||
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA'
+                  }
                 />
-              ))}
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <h3 className="text-xl font-bold text-white">{peerName}</h3>
+                <span className="text-xs text-primary font-mono animate-pulse">
+                  Establishing Daily.co encrypted session...
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 h-8">
+                {[20, 45, 80, 60, 95, 40, 75, 50, 90, 30].map((h, i) => (
+                  <div
+                    key={i}
+                    style={{ height: `${h * 0.35}px` }}
+                    className="w-1.5 rounded-full bg-primary/80 animate-pulse"
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Action Controls Bar */}
-        <div className="w-full p-5 bg-surface-container-high flex items-center justify-center gap-4 z-20 border-t border-surface-container-highest">
-          {/* Mute Button */}
+          {/* Daily Iframe Container (Auto-fills width/height and binds media streams) */}
+          <div
+            ref={dailyContainerRef}
+            className="w-full h-full min-h-[360px] flex items-center justify-center"
+          />
+
+          {streamError && (
+            <div className="absolute bottom-4 left-4 right-4 bg-error/90 text-white p-2.5 rounded-xl text-xs font-mono z-30 shadow-xl">
+              {streamError}
+            </div>
+          )}
+        </div>
+
+        {/* Action Utility Bar */}
+        <div className="w-full px-4 py-3 bg-surface-container-low flex items-center justify-center gap-3 z-20 border-t border-surface-container-highest/60">
           <button
             type="button"
             onClick={toggleMute}
-            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${
+            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all ${
               isMuted
                 ? 'bg-error text-white'
-                : 'bg-surface-container text-on-surface hover:bg-surface-bright'
+                : 'bg-surface-container-high text-on-surface hover:bg-surface-bright'
             }`}
-            title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+            title={isMuted ? 'Unmute' : 'Mute'}
           >
-            <span className="material-symbols-outlined">{isMuted ? 'mic_off' : 'mic'}</span>
+            <span className="material-symbols-outlined text-[20px]">
+              {isMuted ? 'mic_off' : 'mic'}
+            </span>
           </button>
 
-          {/* End Call Button */}
           <button
             type="button"
             onClick={endCall}
-            className="w-16 h-16 rounded-full bg-error text-white flex items-center justify-center shadow-2xl active:scale-95 hover:bg-error/90 transition-transform"
-            title="End Encrypted Call"
+            className="w-14 h-14 rounded-full bg-error text-white flex items-center justify-center shadow-2xl active:scale-95 hover:bg-error/90 transition-transform"
+            title="End Call"
           >
             <span className="material-symbols-outlined text-3xl">call_end</span>
           </button>
 
-          {/* Video Controls */}
-          {isVideo ? (
-            <>
-              <button
-                type="button"
-                onClick={toggleVideo}
-                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${
-                  isVideoOff
-                    ? 'bg-error text-white'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-bright'
-                }`}
-                title={isVideoOff ? 'Turn camera on' : 'Turn camera off'}
-              >
-                <span className="material-symbols-outlined">
-                  {isVideoOff ? 'videocam_off' : 'videocam'}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={toggleScreenShare}
-                className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${
-                  isScreenSharing
-                    ? 'bg-tertiary text-black'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-bright'
-                }`}
-                title={isScreenSharing ? 'Stop screen share' : 'Share screen'}
-              >
-                <span className="material-symbols-outlined">screen_share</span>
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => alert('Audio output routing active.')}
-              className="w-12 h-12 rounded-full bg-surface-container text-on-surface flex items-center justify-center shadow-lg active:scale-95 hover:bg-surface-bright transition-all"
-              title="Speakerphone"
-            >
-              <span className="material-symbols-outlined">volume_up</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={toggleVideo}
+            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all ${
+              isVideoOff
+                ? 'bg-error text-white'
+                : 'bg-surface-container-high text-on-surface hover:bg-surface-bright'
+            }`}
+            title={isVideoOff ? 'Turn camera on' : 'Turn camera off'}
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {isVideoOff ? 'videocam_off' : 'videocam'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleScreenShare}
+            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all ${
+              isScreenSharing
+                ? 'bg-tertiary text-black'
+                : 'bg-surface-container-high text-on-surface hover:bg-surface-bright'
+            }`}
+            title={isScreenSharing ? 'Stop screen share' : 'Share screen'}
+          >
+            <span className="material-symbols-outlined text-[20px]">screen_share</span>
+          </button>
         </div>
       </div>
     </div>

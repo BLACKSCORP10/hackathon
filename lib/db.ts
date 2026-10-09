@@ -29,6 +29,7 @@ export interface FirestoreUser {
   phone?: string;
   avatarUrl: string;
   statusText?: string;
+  bio?: string;
   statusEmoji?: string;
   isOnline: boolean;
   role?: string;
@@ -45,8 +46,9 @@ export interface FirestoreMessage {
   receiverId?: string;
   content: string;
   text?: string;
-  type: 'text' | 'image' | 'voice' | 'code' | 'file';
+  type: 'text' | 'image' | 'voice' | 'code' | 'file' | 'ai';
   mediaUrl?: string;
+  mediaType?: string;
   mediaMeta?: {
     name?: string;
     size?: string;
@@ -64,6 +66,7 @@ export interface FirestoreMessage {
   timestamp?: any;
   createdAt?: any;
   isSelf?: boolean;
+  isAi?: boolean;
 }
 
 export interface FirestoreChat {
@@ -93,9 +96,11 @@ export interface FirestoreStory {
   userName: string;
   userAvatar: string;
   mediaUrl: string;
+  mediaType?: 'image' | 'video' | 'text';
   caption: string;
   timestamp?: any;
   createdAt?: any;
+  expiresAt?: any;
   viewed?: boolean;
 }
 
@@ -109,6 +114,7 @@ export interface FirestoreCall {
   receiverAvatar: string;
   type: 'audio' | 'video';
   status: 'pending' | 'connected' | 'rejected' | 'ended';
+  roomUrl?: string;
   offer?: {
     sdp?: string;
     type?: 'offer' | 'answer' | 'pranswer' | 'rollback';
@@ -237,7 +243,7 @@ export async function sendFirestoreMessage(
     senderAvatar: string;
     receiverId?: string;
     content: string;
-    type?: 'text' | 'image' | 'voice' | 'code' | 'file';
+    type?: 'text' | 'image' | 'voice' | 'code' | 'file' | 'ai';
     mediaUrl?: string;
     mediaMeta?: any;
     replyTo?: any;
@@ -361,20 +367,41 @@ export async function addFirestoreReaction(chatId: string, messageId: string, em
   });
 }
 
+export async function updateFirestoreUserProfile(
+  userId: string,
+  profile: { name?: string; bio?: string; statusText?: string; avatarUrl?: string; username?: string; phone?: string }
+): Promise<void> {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const updates: any = { ...profile, lastSeen: serverTimestamp() };
+    if (profile.bio && !profile.statusText) updates.statusText = profile.bio;
+    await updateDoc(userRef, updates);
+  } catch (error) {
+    console.error('Error updating user profile in Firestore:', error);
+    throw error;
+  }
+}
+
 // Story Operations
 export async function createFirestoreStory(story: {
   userId: string;
   userName: string;
   userAvatar: string;
   mediaUrl: string;
+  mediaType?: 'image' | 'video' | 'text';
   caption: string;
 }): Promise<string> {
   const storiesRef = collection(db, 'stories');
   const now = serverTimestamp();
+  const expiresAtMs = Date.now() + 24 * 60 * 60 * 1000; // 24 hours from now
+  const expiresAt = Timestamp.fromMillis(expiresAtMs);
+
   const docRef = await addDoc(storiesRef, {
     ...story,
+    mediaType: story.mediaType || 'image',
     createdAt: now,
     timestamp: now,
+    expiresAt,
   });
   return docRef.id;
 }

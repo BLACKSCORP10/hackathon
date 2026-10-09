@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInAnonymously,
   signOut,
   updateProfile,
   User as FirebaseUser,
@@ -31,6 +32,7 @@ interface AuthContextType {
   }) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   loginWithGithub: () => Promise<void>;
+  loginAnonymously: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfileData: (updates: Partial<FirestoreUser>) => Promise<void>;
 }
@@ -191,6 +193,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginAnonymously = async () => {
+    setIsLoading(true);
+    try {
+      const result = await signInAnonymously(auth);
+      const anonUser = result.user;
+
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      const synced = await syncFirestoreUser({
+        uid: anonUser.uid,
+        name: `Guest Operative ${randomNum}`,
+        username: `guest_${randomNum}`,
+        email: `guest_${anonUser.uid.slice(0, 6)}@nexus.internal`,
+        statusText: 'Guest node session active',
+        statusEmoji: '⚡',
+        role: 'Guest Operative',
+      });
+      setUser(synced);
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Anonymous sign in error:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       if (user?.uid) {
@@ -228,6 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         loginWithGoogle,
         loginWithGithub,
+        loginAnonymously,
         logout,
         updateProfileData,
       }}

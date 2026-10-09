@@ -15,13 +15,15 @@ export const BottomNav: React.FC = () => {
   const isSettings = pathname.startsWith('/settings');
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/90 backdrop-blur-xl border-t border-surface-container-highest/40 pb-safe shadow-2xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/85 backdrop-blur-xl border-t border-white/10 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
       <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-around">
         {/* Chats Tab */}
         <Link
           href="/dashboard"
-          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
-            isChats ? 'text-primary scale-105' : 'text-on-surface-variant hover:text-on-surface'
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all group ${
+            isChats
+              ? 'text-indigo-400 scale-105 drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <div className="relative">
@@ -32,7 +34,7 @@ export const BottomNav: React.FC = () => {
               chat_bubble
             </span>
             {unreadTotal > 0 && (
-              <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 bg-primary-container text-on-primary-container font-label-sm text-[10px] font-bold rounded-full flex items-center justify-center shadow-md">
+              <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 bg-indigo-500 text-white font-label-sm text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/50">
                 {unreadTotal}
               </span>
             )}
@@ -43,8 +45,10 @@ export const BottomNav: React.FC = () => {
         {/* Stories Tab */}
         <Link
           href="/stories"
-          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
-            isStories ? 'text-primary scale-105' : 'text-on-surface-variant hover:text-on-surface'
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all group ${
+            isStories
+              ? 'text-indigo-400 scale-105 drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <span
@@ -59,8 +63,10 @@ export const BottomNav: React.FC = () => {
         {/* Calls Tab */}
         <Link
           href="/calls"
-          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
-            isCalls ? 'text-primary scale-105' : 'text-on-surface-variant hover:text-on-surface'
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all group ${
+            isCalls
+              ? 'text-indigo-400 scale-105 drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <span
@@ -75,8 +81,10 @@ export const BottomNav: React.FC = () => {
         {/* Settings Tab */}
         <Link
           href="/settings"
-          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
-            isSettings ? 'text-primary scale-105' : 'text-on-surface-variant hover:text-on-surface'
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all group ${
+            isSettings
+              ? 'text-indigo-400 scale-105 drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <span
