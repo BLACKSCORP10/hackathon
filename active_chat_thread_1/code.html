@@ -1,0 +1,471 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><meta content="mobile_stack" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "secondary-container": "#571bc1", "primary-fixed-dim": "#c0c1ff", "inverse-on-surface": "#2e3037", "inverse-surface": "#e1e2eb", "surface-container-low": "#191c22", "on-error-container": "#ffdad6", "on-surface": "#e1e2eb", "error-container": "#93000a", "secondary-fixed-dim": "#d0bcff", "outline-variant": "#464554", "on-tertiary-fixed": "#002113", "tertiary": "#4edea3", "outline": "#908fa0", "on-primary": "#1000a9", "on-primary-fixed-variant": "#2f2ebe", "secondary-fixed": "#e9ddff", "surface-container-lowest": "#0b0e14", "on-primary-container": "#0d0096", "on-tertiary": "#003824", "on-error": "#690005", "on-secondary": "#3c0091", "surface-container-highest": "#32353c", "on-secondary-fixed": "#23005c", "background": "#10131a", "surface-container-high": "#272a31", "inverse-primary": "#494bd6", "on-primary-fixed": "#07006c", "on-surface-variant": "#c7c4d7", "surface-tint": "#c0c1ff", "surface": "#10131a", "on-background": "#e1e2eb", "tertiary-fixed": "#6ffbbe", "tertiary-container": "#00885d", "surface-container": "#1d2026", "on-secondary-fixed-variant": "#5516be", "primary": "#c0c1ff", "on-tertiary-fixed-variant": "#005236", "tertiary-fixed-dim": "#4edea3", "secondary": "#d0bcff", "surface-variant": "#32353c", "error": "#ffb4ab", "on-secondary-container": "#c4abff", "surface-bright": "#363940", "surface-dim": "#10131a", "primary-container": "#8083ff", "on-tertiary-container": "#000703", "primary-fixed": "#e1e0ff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "space-xl": "2rem", "space-sm": "0.5rem", "space-lg": "1.25rem", "space-md": "0.75rem", "margin": "1rem", "gutter": "1rem" }, fontFamily: { "body-sm": ["Inter"], "headline-lg": ["Inter"], "label-sm": ["Inter"], "headline-xl": ["Inter"], "headline-md": ["Inter"], "label-md": ["Inter"], "code-sm": ["JetBrains Mono"], "body-md": ["Inter"], "body-lg": ["Inter"], "headline-xl-mobile": ["Inter"] }, fontSize: { "body-sm": ["13px", { lineHeight: "18px", letterSpacing: "0", fontWeight: "400" }], "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }], "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "600" }], "headline-xl": ["36px", { lineHeight: "44px", letterSpacing: "-0.025em", fontWeight: "700" }], "headline-md": ["18px", { lineHeight: "26px", letterSpacing: "-0.015em", fontWeight: "600" }], "label-md": ["13px", { lineHeight: "18px", letterSpacing: "0.01em", fontWeight: "500" }], "code-sm": ["12px", { lineHeight: "18px", letterSpacing: "0", fontWeight: "400" }], "body-md": ["14px", { lineHeight: "22px", letterSpacing: "0", fontWeight: "400" }], "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "400" }], "headline-xl-mobile": ["28px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "700" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><main class="flex flex-col relative w-full pb-safe bg-surface"><div class="flex flex-col w-full relative">
+<!-- Interactive Canvas: Particle Burst Overlay Container -->
+<div class="fixed inset-0 pointer-events-none z-50 overflow-hidden" id="fx-layer"></div>
+<!-- Persistent Active Chat Sub-Header -->
+<div class="sticky top-0 z-40 bg-surface-container-low/95 backdrop-blur-xl px-space-md py-space-sm flex flex-col gap-space-xs shadow-md pt-safe">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm min-w-0"><button aria-label="Go back" class="w-9 h-9 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container transition-colors -ml-1 flex-shrink-0 active:scale-95" onclick="history.back()"><span class="material-symbols-outlined text-[22px]">arrow_back_ios_new</span></button>
+<div class="relative flex-shrink-0">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Portrait photo of Sarah Chen, a stylish Asian female lead software engineer with glasses smiling gently, neon cyberpunk studio lighting with subtle purple and teal reflections, highly detailed photorealistic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA">
+<span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-tertiary shadow-[0_0_8px_rgba(78,222,163,0.8)]"></span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface truncate">Sarah Chen</span>
+<span class="px-1.5 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm flex-shrink-0">Staff Eng</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-tertiary truncate" id="typing-indicator">Online · typing<span class="animate-bounce inline-block">.</span><span class="animate-bounce inline-block [animation-delay:0.2s]">.</span><span class="animate-bounce inline-block [animation-delay:0.4s]">.</span></span>
+</div>
+</div>
+</div>
+<!-- Action Utilities -->
+<div class="flex items-center gap-1">
+<button aria-label="Start Audio Call" class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-95 transition-all hover:bg-surface-container-high hover:text-on-surface" id="audio-call-btn">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+<button aria-label="Start Video Call" class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-95 transition-all hover:bg-surface-container-high hover:text-on-surface" id="video-call-btn">
+<span class="material-symbols-outlined text-[20px]">videocam</span>
+</button>
+<button aria-label="Chat settings" class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-95 transition-all hover:bg-surface-container-high hover:text-on-surface" id="chat-info-btn">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+</div>
+</div>
+<!-- Security E2EE Pill -->
+<div class="flex items-center justify-center pt-0.5">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-highest/60 backdrop-blur-sm text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[13px] text-tertiary">lock</span>
+<span class="">End-to-End Encrypted (AES-256 GCM) · Zero-Knowledge</span>
+</div>
+</div>
+</div>
+<!-- Main Message Stream -->
+<div class="flex flex-col px-space-md py-space-md gap-space-lg" id="message-container">
+<!-- Date / System Encryption Marker -->
+<div class="flex flex-col items-center gap-1 my-1">
+<div class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm shadow-sm flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[13px] text-primary">verified_user</span>
+<span class="">Today · Messages &amp; calls are end-to-end encrypted</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant/70 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[12px]">schedule</span>
+<span class="">24h auto-delete enabled</span>
+</div>
+</div>
+<!-- Incoming Message Block (Sarah) with Interactive Reaction Bar -->
+<div class="flex flex-col items-start max-w-[88%] gap-1 group">
+<!-- Floating Micro-Reactions Pill Bar -->
+<div class="self-start -mb-2 z-10 ml-3 flex items-center gap-1 p-1 rounded-full bg-surface-container-high/90 backdrop-blur-md shadow-md animate-fade-in">
+<button class="px-2 py-0.5 rounded-full bg-surface-container hover:bg-surface-bright text-label-sm font-label-sm text-on-surface flex items-center gap-1 transition-transform active:scale-125" onclick="handleReaction(this, '❤️')">
+<span class="">❤️</span><span class="text-on-surface-variant text-[10px]">3</span>
+</button>
+<button class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary hover:bg-primary-container/30 text-label-sm font-label-sm flex items-center gap-1 transition-transform active:scale-125" onclick="handleReaction(this, '🔥')">
+<span class="">🔥</span><span class="text-[10px] font-semibold">5</span>
+</button>
+<button class="px-2 py-0.5 rounded-full bg-surface-container hover:bg-surface-bright text-label-sm font-label-sm text-on-surface flex items-center gap-1 transition-transform active:scale-125" onclick="handleReaction(this, '👍')">
+<span class="">👍</span><span class="text-on-surface-variant text-[10px]">2</span>
+</button>
+<button class="px-2 py-0.5 rounded-full bg-surface-container hover:bg-surface-bright text-label-sm font-label-sm text-on-surface flex items-center gap-1 transition-transform active:scale-125" onclick="handleReaction(this, '😂')">
+<span class="">😂</span><span class="text-on-surface-variant text-[10px]">1</span>
+</button>
+<button class="w-6 h-6 rounded-full bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface-variant active:scale-110" onclick="toggleQuickPicker(this)">
+<span class="material-symbols-outlined text-[14px]">add_reaction</span>
+</button>
+</div>
+<!-- Sarah Text Bubble -->
+<div class="bg-surface-container p-3.5 rounded-2xl rounded-tl-sm text-on-surface shadow-sm">
+<p class="font-body-md text-body-md leading-relaxed">Hey! Just finalized the demo slides and WebRTC audio stream benchmarks.</p>
+<div class="flex items-center justify-end gap-1 mt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[10px]">10:38 AM</span>
+</div>
+</div>
+</div>
+<!-- Multimedia Card: Architecture Diagram Preview -->
+<div class="flex flex-col items-start max-w-[88%] gap-1">
+<div class="bg-surface-container rounded-2xl rounded-tl-sm overflow-hidden shadow-md w-full">
+<div class="relative group cursor-pointer overflow-hidden" onclick="previewImage()">
+<img class="w-full h-44 object-cover transition-transform duration-300 group-hover:scale-105" data-alt="High-tech sleek software architecture diagram schematic showing WebRTC peer mesh, low-latency audio pipelines, and edge compute nodes on dark deep blue canvas with glowing vibrant purple and cyan circuit paths, ultra clean UX design" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQoqqGEVNNIoEUtVPn9CkBxp5bQdpyrhqv9JeIQaOYY90l3PQiengRMfeNgypd2Ii2ShZ38r95t0TgEjbvI85Ko_ObRH9iNbWMyfbmQZDXw_GRM2Fyk5a2zETw2rc1cDOqMFCwfWJ_IQxpqtcHE7mTmdeIBRXPD5szk8xpwRFTlIBprihpu_hsEdO_TXNDL8wz7rkkHcQjU6SPPAXFlYU1HkB-J-S-t7ksHjstS9Nc0wRz3agCLy8uzg">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 via-transparent to-transparent pointer-events-none"></div>
+<!-- Chips overlay -->
+<div class="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-lowest/80 backdrop-blur-md text-primary font-code-sm text-code-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">high_density</span> HD 1.8 MB
+            </span>
+</div>
+<div class="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur-md text-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">open_in_full</span>
+</div>
+</div>
+<div class="p-3 flex items-center justify-between">
+<div class="flex flex-col min-w-0 pr-2">
+<span class="font-label-md text-label-md text-on-surface truncate">webrtc-mesh-topology-v2.png</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Tap to inspect nodes &amp; signal flows</span>
+</div>
+<button class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-2 text-[10px]">10:39 AM</span>
+</div>
+<!-- Interactive Audio Waveform Voice Note -->
+<div class="flex flex-col items-start max-w-[92%] gap-1">
+<div class="bg-surface-container p-3 rounded-2xl rounded-tl-sm shadow-md w-full flex flex-col gap-2">
+<div class="flex items-center gap-3">
+<!-- Play / Pause Dynamic Button -->
+<button class="w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-transform flex-shrink-0" id="voice-play-toggle" onclick="toggleAudioPlayback()">
+<span class="material-symbols-outlined text-[24px]" id="voice-play-icon" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<!-- Audio Bars & Scrubber -->
+<div class="flex-1 flex flex-col justify-center gap-1 min-w-0">
+<!-- Simulated Soundwave Visualizer -->
+<div class="h-8 flex items-center gap-[3px] py-1 cursor-pointer overflow-hidden" id="waveform-track">
+<div class="w-1 h-3 rounded-full bg-primary"></div>
+<div class="w-1 h-5 rounded-full bg-primary"></div>
+<div class="w-1 h-7 rounded-full bg-primary"></div>
+<div class="w-1 h-4 rounded-full bg-primary"></div>
+<div class="w-1 h-6 rounded-full bg-primary"></div>
+<div class="w-1 h-8 rounded-full bg-primary"></div>
+<div class="w-1 h-5 rounded-full bg-primary"></div>
+<div class="w-1 h-3 rounded-full bg-primary"></div>
+<div class="w-1 h-6 rounded-full bg-primary"></div>
+<div class="w-1 h-7 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-5 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-8 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-4 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-6 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-3 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-5 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-7 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-4 rounded-full bg-outline-variant"></div>
+<div class="w-1 h-2 rounded-full bg-outline-variant"></div>
+</div>
+<!-- Time & Speed Metadata -->
+<div class="flex items-center justify-between text-on-surface-variant font-code-sm text-code-sm">
+<span id="voice-time" class="">0:14 / 0:42</span>
+<button class="px-2 py-0.5 rounded-full bg-surface-container-high text-primary hover:bg-surface-bright font-label-sm text-label-sm" id="voice-speed" onclick="toggleSpeed()">1.5x</button>
+</div>
+</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-2 text-[10px]">10:40 AM</span>
+</div>
+<!-- File Attachment Bubble (ZIP archive) -->
+<div class="flex flex-col items-start max-w-[88%] gap-1">
+<div class="bg-surface-container p-3 rounded-2xl rounded-tl-sm shadow-md w-full flex items-center justify-between gap-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-11 h-11 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[24px]">folder_zip</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-md text-headline-md text-on-surface text-[14px] truncate">nexus_webrtc_v2.zip</span>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-code-sm text-code-sm text-on-surface-variant">14.2 MB</span>
+<span class="px-1.5 py-0.2 rounded-full bg-tertiary-container/20 text-tertiary font-label-sm text-label-sm flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[11px]">verified</span> Safe · Scanned
+              </span>
+</div>
+</div>
+</div>
+<button class="w-9 h-9 rounded-full bg-surface-container-high text-primary hover:bg-surface-bright flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">file_download</span>
+</button>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-2 text-[10px]">10:40 AM</span>
+</div>
+<!-- Outgoing Message (Me) with Read Receipts & Animation Anchor -->
+<div class="flex flex-col items-end self-end max-w-[88%] gap-1">
+<div class="bg-primary text-on-primary p-3.5 rounded-2xl rounded-tr-sm shadow-lg flex flex-col gap-1">
+<p class="font-body-md text-body-md font-medium leading-relaxed">Awesome work Sarah! Testing latency on the mobile client right now. Sub-50ms ping!</p>
+<div class="flex items-center justify-end gap-1.5 mt-0.5">
+<span class="font-label-sm text-label-sm text-on-primary/80 text-[10px]">10:41 AM</span>
+<div class="flex items-center text-on-primary">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">done_all</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Dynamic Injected New Messages Stream Slot -->
+<div class="flex flex-col gap-space-lg w-full" id="dynamic-stream"></div>
+</div>
+<!-- Contextual Smart Reply Chips -->
+<div class="px-space-md py-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
+<button class="px-3 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-bright text-on-surface text-label-md font-label-md whitespace-nowrap active:scale-95 transition-all flex items-center gap-1 shadow-sm" onclick="injectSmartReply('Looks great! 🔥')">
+<span class="">Looks great! 🔥</span>
+</button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-bright text-on-surface text-label-md font-label-md whitespace-nowrap active:scale-95 transition-all flex items-center gap-1 shadow-sm" onclick="injectSmartReply('Let\'s rehearse the demo')">
+<span class="material-symbols-outlined text-[14px] text-tertiary">slideshow</span>
+<span class="">Let's rehearse the demo</span>
+</button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-bright text-on-surface text-label-md font-label-md whitespace-nowrap active:scale-95 transition-all flex items-center gap-1 shadow-sm" onclick="injectSmartReply('Can you send repo link?')">
+<span class="material-symbols-outlined text-[14px] text-primary">link</span>
+<span class="">Can you send repo link?</span>
+</button>
+</div>
+<!-- Attachment Quick Drawer (Slide-Up Overlay inside layout) -->
+<div class="hidden mx-space-md mb-2 p-3 rounded-2xl bg-surface-container-high shadow-xl animate-fade-in flex items-center justify-around gap-2" id="attachment-drawer">
+<button class="flex flex-col items-center gap-1 text-on-surface hover:text-primary transition-colors" onclick="triggerDrawerAction('Camera')">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">photo_camera</span>
+</div>
+<span class="font-label-sm text-label-sm">Camera</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface hover:text-primary transition-colors" onclick="triggerDrawerAction('Gallery')">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">photo_library</span>
+</div>
+<span class="font-label-sm text-label-sm">Gallery</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface hover:text-primary transition-colors" onclick="triggerDrawerAction('Audio Note')">
+<div class="w-12 h-12 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">graphic_eq</span>
+</div>
+<span class="font-label-sm text-label-sm">Audio</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface hover:text-primary transition-colors" onclick="triggerDrawerAction('Document')">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">description</span>
+</div>
+<span class="font-label-sm text-label-sm">Document</span>
+</button>
+</div>
+<!-- Bottom Message Input Dock -->
+<div class="sticky bottom-0 z-40 bg-surface-container-low/95 backdrop-blur-xl px-space-md py-space-sm shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
+<div class="flex items-end gap-2">
+<!-- Attachment Toggle Button -->
+<button aria-label="Add attachment" class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-95 transition-all flex-shrink-0 mb-0.5" id="attachment-toggle" onclick="toggleAttachmentMenu()">
+<span class="material-symbols-outlined text-[22px] transition-transform" id="attachment-icon">add</span>
+</button>
+<!-- Flexible Auto-expanding Composer Container -->
+<div class="flex-1 bg-surface-container rounded-2xl px-3 py-2 flex items-end gap-2 focus-within:ring-2 focus-within:ring-primary/40 transition-all min-h-[44px]">
+<textarea class="w-full bg-transparent text-on-surface placeholder:text-on-surface-variant/60 font-body-md text-body-md resize-none outline-none leading-tight py-1 max-h-28 overflow-y-auto" id="composer-textarea" oninput="autoGrowTextarea(this)" placeholder="Type a message or use @Gemini..." rows="1"></textarea>
+<!-- Emoji Picker Trigger -->
+<button aria-label="Insert Emoji" class="w-7 h-7 flex items-center justify-center text-on-surface-variant hover:text-on-surface mb-0.5 transition-colors" id="emoji-picker-btn" onclick="openEmojiSheet()">
+<span class="material-symbols-outlined text-[20px]">sentiment_satisfied</span>
+</button>
+</div>
+<!-- Mic (Hold to Record) or Send Button -->
+<div class="relative flex items-center mb-0.5">
+<!-- Mic Button -->
+<button aria-label="Record voice note" class="w-10 h-10 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center active:scale-90 transition-all flex-shrink-0" id="mic-btn" onpointerdown="startAudioRecording()" onpointerup="stopAudioRecording()">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+<!-- Vivid Electric Indigo Send Button (Revealed when typing) -->
+<button aria-label="Send message" class="hidden w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg active:scale-95 transition-all flex-shrink-0" id="send-btn" onclick="sendMessage()">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Message Composer Interactive Logic
+  const textarea = document.getElementById('composer-textarea');
+  const micBtn = document.getElementById('mic-btn');
+  const sendBtn = document.getElementById('send-btn');
+  const stream = document.getElementById('dynamic-stream');
+  const fxLayer = document.getElementById('fx-layer');
+
+  function autoGrowTextarea(el) {
+    el.style.height = 'auto';
+    el.style.height = (el.scrollHeight) + 'px';
+    if (el.value.trim().length > 0) {
+      micBtn.classList.add('hidden');
+      sendBtn.classList.remove('hidden');
+    } else {
+      micBtn.classList.remove('hidden');
+      sendBtn.classList.add('hidden');
+    }
+  }
+
+  function sendMessage() {
+    const text = textarea.value.trim();
+    if (!text) return;
+
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const msgElement = document.createElement('div');
+    msgElement.className = 'flex flex-col items-end self-end max-w-[88%] gap-1 transition-all duration-300 transform translate-y-2 opacity-0';
+    msgElement.innerHTML = `
+      <div class="bg-primary text-on-primary p-3.5 rounded-2xl rounded-tr-sm shadow-lg flex flex-col gap-1">
+        <p class="font-body-md text-body-md font-medium leading-relaxed">${escapeHtml(text)}</p>
+        <div class="flex items-center justify-end gap-1.5 mt-0.5">
+          <span class="font-label-sm text-label-sm text-on-primary/80 text-[10px]">${timeStr}</span>
+          <div class="flex items-center text-on-primary">
+            <span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">done</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    stream.appendChild(msgElement);
+    
+    // Quick Trigger particle delight
+    createSendParticles();
+
+    // Reset textarea
+    textarea.value = '';
+    textarea.style.height = 'auto';
+    micBtn.classList.remove('hidden');
+    sendBtn.classList.add('hidden');
+
+    // Smooth scroll down & reveal
+    setTimeout(() => {
+      msgElement.classList.remove('translate-y-2', 'opacity-0');
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 20);
+  }
+
+  function injectSmartReply(text) {
+    textarea.value = text;
+    autoGrowTextarea(textarea);
+    sendMessage();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
+  }
+
+  // Audio Note Play/Pause & Speed Togglers
+  let isPlaying = false;
+  let playbackInterval = null;
+  let playSeconds = 14;
+
+  function toggleAudioPlayback() {
+    isPlaying = !isPlaying;
+    const icon = document.getElementById('voice-play-icon');
+    const timeLabel = document.getElementById('voice-time');
+    
+    if (isPlaying) {
+      icon.innerText = 'pause';
+      playbackInterval = setInterval(() => {
+        playSeconds++;
+        if (playSeconds > 42) {
+          playSeconds = 0;
+          toggleAudioPlayback();
+          return;
+        }
+        const s = playSeconds < 10 ? '0' + playSeconds : playSeconds;
+        timeLabel.innerText = `0:${s} / 0:42`;
+      }, 1000);
+    } else {
+      icon.innerText = 'play_arrow';
+      clearInterval(playbackInterval);
+    }
+  }
+
+  function toggleSpeed() {
+    const speedBtn = document.getElementById('voice-speed');
+    const current = speedBtn.innerText;
+    if (current === '1.0x') speedBtn.innerText = '1.5x';
+    else if (current === '1.5x') speedBtn.innerText = '2.0x';
+    else speedBtn.innerText = '1.0x';
+  }
+
+  // Micro Reactions Dynamic Handling
+  function handleReaction(btn, emoji) {
+    const counter = btn.querySelector('span:last-child');
+    if (counter) {
+      let count = parseInt(counter.innerText) || 0;
+      count += 1;
+      counter.innerText = count;
+    }
+    createEmojiBurst(btn, emoji);
+  }
+
+  function toggleAttachmentMenu() {
+    const drawer = document.getElementById('attachment-drawer');
+    const icon = document.getElementById('attachment-icon');
+    if (drawer.classList.contains('hidden')) {
+      drawer.classList.remove('hidden');
+      icon.classList.add('rotate-45');
+    } else {
+      drawer.classList.add('hidden');
+      icon.classList.remove('rotate-45');
+    }
+  }
+
+  function triggerDrawerAction(type) {
+    toggleAttachmentMenu();
+    injectSmartReply(`Uploaded ${type} payload 📎`);
+  }
+
+  function previewImage() {
+    createEmojiBurst(document.body, '🔍');
+  }
+
+  function openEmojiSheet() {
+    const emojis = ['👍', '🎉', '🚀', '⚡', '🧠'];
+    const chosen = emojis[Math.floor(Math.random() * emojis.length)];
+    textarea.value += chosen + ' ';
+    autoGrowTextarea(textarea);
+  }
+
+  let recordHoldTimer;
+  function startAudioRecording() {
+    micBtn.classList.add('bg-error-container', 'text-on-error-container', 'scale-110');
+  }
+
+  function stopAudioRecording() {
+    micBtn.classList.remove('bg-error-container', 'text-on-error-container', 'scale-110');
+    injectSmartReply('🎤 [Voice Message 0:04]');
+  }
+
+  // Particle micro-interaction generator
+  function createEmojiBurst(targetElement, char) {
+    const rect = targetElement.getBoundingClientRect();
+    for (let i = 0; i < 5; i++) {
+      const p = document.createElement('div');
+      p.innerText = char;
+      p.className = 'fixed text-lg pointer-events-none transition-all duration-700 ease-out z-50';
+      p.style.left = (rect.left + rect.width / 2) + 'px';
+      p.style.top = (rect.top) + 'px';
+      fxLayer.appendChild(p);
+
+      const angle = (Math.PI * 2 * i) / 5;
+      const dist = 35 + Math.random() * 25;
+      const tx = Math.cos(angle) * dist;
+      const ty = Math.sin(angle) * dist - 25;
+
+      setTimeout(() => {
+        p.style.transform = `translate(${tx}px, ${ty}px) scale(0)`;
+        p.style.opacity = '0';
+      }, 10);
+
+      setTimeout(() => p.remove(), 750);
+    }
+  }
+
+  function createSendParticles() {
+    const rect = sendBtn.getBoundingClientRect();
+    for (let i = 0; i < 6; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'fixed w-2 h-2 rounded-full bg-primary pointer-events-none transition-all duration-500 ease-out z-50';
+      dot.style.left = (rect.left + rect.width / 2) + 'px';
+      dot.style.top = (rect.top + rect.height / 2) + 'px';
+      fxLayer.appendChild(dot);
+
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 40 + Math.random() * 30;
+      const tx = Math.cos(angle) * dist;
+      const ty = Math.sin(angle) * dist;
+
+      setTimeout(() => {
+        dot.style.transform = `translate(${tx}px, ${ty}px) scale(0)`;
+        dot.style.opacity = '0';
+      }, 10);
+
+      setTimeout(() => dot.remove(), 550);
+    }
+  }
+</script></main>
+
+</body></html>

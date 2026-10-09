@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "secondary-container": "#571bc1", "primary-fixed-dim": "#c0c1ff", "inverse-on-surface": "#2e3037", "inverse-surface": "#e1e2eb", "surface-container-low": "#191c22", "on-error-container": "#ffdad6", "on-surface": "#e1e2eb", "error-container": "#93000a", "secondary-fixed-dim": "#d0bcff", "outline-variant": "#464554", "on-tertiary-fixed": "#002113", "tertiary": "#4edea3", "outline": "#908fa0", "on-primary": "#1000a9", "on-primary-fixed-variant": "#2f2ebe", "secondary-fixed": "#e9ddff", "surface-container-lowest": "#0b0e14", "on-primary-container": "#0d0096", "on-tertiary": "#003824", "on-error": "#690005", "on-secondary": "#3c0091", "surface-container-highest": "#32353c", "on-secondary-fixed": "#23005c", "background": "#10131a", "surface-container-high": "#272a31", "inverse-primary": "#494bd6", "on-primary-fixed": "#07006c", "on-surface-variant": "#c7c4d7", "surface-tint": "#c0c1ff", "surface": "#10131a", "on-background": "#e1e2eb", "tertiary-fixed": "#6ffbbe", "tertiary-container": "#00885d", "surface-container": "#1d2026", "on-secondary-fixed-variant": "#5516be", "primary": "#c0c1ff", "on-tertiary-fixed-variant": "#005236", "tertiary-fixed-dim": "#4edea3", "secondary": "#d0bcff", "surface-variant": "#32353c", "error": "#ffb4ab", "on-secondary-container": "#c4abff", "surface-bright": "#363940", "surface-dim": "#10131a", "primary-container": "#8083ff", "on-tertiary-container": "#000703", "primary-fixed": "#e1e0ff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.25rem", "space-xl": "2rem", "space-sm": "0.5rem", "space-lg": "1.25rem", "space-md": "0.75rem", "margin": "1rem", "gutter": "1rem" }, fontFamily: { "body-sm": ["Inter"], "headline-lg": ["Inter"], "label-sm": ["Inter"], "headline-xl": ["Inter"], "headline-md": ["Inter"], "label-md": ["Inter"], "code-sm": ["JetBrains Mono"], "body-md": ["Inter"], "body-lg": ["Inter"], "headline-xl-mobile": ["Inter"] }, fontSize: { "body-sm": ["13px", { lineHeight: "18px", letterSpacing: "0", fontWeight: "400" }], "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }], "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "600" }], "headline-xl": ["36px", { lineHeight: "44px", letterSpacing: "-0.025em", fontWeight: "700" }], "headline-md": ["18px", { lineHeight: "26px", letterSpacing: "-0.015em", fontWeight: "600" }], "label-md": ["13px", { lineHeight: "18px", letterSpacing: "0.01em", fontWeight: "500" }], "code-sm": ["12px", { lineHeight: "18px", letterSpacing: "0", fontWeight: "400" }], "body-md": ["14px", { lineHeight: "22px", letterSpacing: "0", fontWeight: "400" }], "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "400" }], "headline-xl-mobile": ["28px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "700" }] } } } }</script></head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="NexusChat Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WL82EoS-d2RTKEUcKzJ_83GffAiOdbk9tA9-_QTK6zi9FL6emUxz9UBgRieJIsPB_iyOh7xgWY8xpnEyXDEwM5YO2qD6NKpQxnQW7XYUk1yq0DtNIL2IGPYmwZrt0XoLI1o3Ba-n8PvgGhdwyk_iG_hbLmJXfrT0IhIOMVrG4M9JEitWj4mHCoDCKFcKKihrC0HDt0WXnOsiwziWKkDqRKLXpRFI_LADj-F9qPG77ZdCoDH9CLtpk-OrxA"/><span class="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">NexusChat</span></div><div class="flex items-center gap-space-xs"><button aria-label="Search" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[22px]">search</span></button><button aria-label="Camera" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[22px]">photo_camera</span></button><button aria-label="More options" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[22px]">more_vert</span></button></div></div></header><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface"><div class="flex flex-col w-full px-space-md py-space-sm space-y-space-md">
+<!-- My Status Spotlight Card -->
+<div class="relative overflow-hidden rounded-xl bg-surface-container-high p-space-md shadow-md transition-all active:scale-[0.99]">
+<div class="flex items-center justify-between gap-space-md">
+<div class="relative flex-shrink-0 cursor-pointer" id="my-status-avatar-btn">
+<div class="relative p-[3px] rounded-full bg-gradient-to-tr from-primary via-secondary to-tertiary">
+<div class="p-[2px] rounded-full bg-surface-container-high">
+<img class="w-14 h-14 rounded-full object-cover" data-alt="Portrait photo of a creative tech product designer in soft cinematic neon ambient lighting with deep dark slate background and high contrast reflections" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARvQ6K04-ac_RMr125XVqGcqdf4XkzuI2HOKODEq58WsZxNlP3JFT2KOl8Yd9Jnr_iSB2v2DMiq5t2so3T4A7gqHgucOLw72AIUbbduHTIxI7Fpdw5flOpvXOIVaOiXj8YIIj7tUaKpNE7x892vCUlpeU_GzZ-gGClEJy6wPokHB8LvZMOOyXEPEwRkXOmKXX5Osc-6i6m3oIKNYXwQorSSNmEd5lYx-n0SIgqCItnXuoBypTP5hkBqg"/>
+</div>
+</div>
+<div class="absolute bottom-0 right-0 translate-x-1 translate-y-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md">
+<span class="material-symbols-outlined text-[16px] font-bold">add</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-space-xs">
+<h2 class="font-headline-md text-headline-md text-on-surface truncate">My Status</h2>
+<span class="px-1.5 py-0.5 rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm">Live</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate mt-0.5">Tap to add status or fleeting thought</p>
+</div>
+<div class="flex items-center gap-1.5">
+<button aria-label="Write status note" class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:text-primary transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+</button>
+<button aria-label="Take status photo" class="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center transition-transform active:scale-90 shadow-md">
+<span class="material-symbols-outlined text-[18px]">photo_camera</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Highlights & Quick Inspiration Pill Bar -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface">Moments</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-tertiary font-label-sm text-label-sm font-semibold">4 New</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1 hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[14px]">tune</span>
+<span>Filter</span>
+</button>
+</div>
+</div>
+<!-- Recent Updates Section -->
+<div class="flex flex-col space-y-space-xs">
+<div class="flex items-center justify-between pb-1">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Recent Updates</span>
+<span class="font-label-sm text-label-sm text-primary cursor-pointer hover:underline">Mute all</span>
+</div>
+<!-- Story Item: Sarah Chen -->
+<div class="story-item group flex items-center gap-space-md p-space-sm rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer shadow-sm" data-user="Sarah Chen">
+<div class="relative flex-shrink-0">
+<div class="p-[2.5px] rounded-full bg-gradient-to-tr from-primary to-secondary">
+<div class="p-[2px] rounded-full bg-surface-container">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Close up portrait photo of Sarah Chen, a senior female engineer in moody cool tone ambient studio with soft cyberpunk purple highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrJSL2PzsFHbpUR77aD70neISgb6ytnpWrH6LCHID-hk7IVLEUIHT-XmJYuGRX3JZOwK7reWUXt6gj3MHKVdt_OwnZp4NDINzrdgJj-yom4dJE8u5HQK8K151xXeeGGy3A6fA6I4ZT5Wbmo0AlbdXI2C5qmzzzF8vtR4M_l5ZowaKpoVUg3KukmSjs33Owe6H-FeIJzIyLDQ0MWSEMAwN4f1FyqDtYa3PBR4qVgnVzIiWGTEsLnw9FmA"/>
+</div>
+</div>
+<div class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-primary text-on-primary font-label-sm text-[10px] leading-tight font-bold shadow-sm">
+          3
+        </div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">Sarah Chen</h3>
+<span class="font-label-sm text-label-sm text-primary font-medium">12m ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Shipped v2.4 build to production 🚀</p>
+</div>
+<div class="w-11 h-14 rounded-lg bg-surface-container-highest overflow-hidden flex-shrink-0 relative">
+<img class="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-300" data-alt="Vertical preview screenshot of code IDE dashboard with sleek dark violet color palette terminal lines and success build badge" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfov87Q_pVjc3iMSMc4msmqu-rTwVfsO7Ut2eRHu_OXoIZnGlQQ4-24x7xWp6PTSE7jBF-kNDCZy8yG7Rm1Cs-IB0oc7UZ6v7dOznXJIFmNAq5zEB7X9OO1QB9do2kEvzyEm6whMqAGcklbZlu0dLXyzsFOt15Nw7TinJ6M6kRTBQeP0XCcyv-TEXoE-X1AAaqi5Tz2Uswi87jnc4LWZHOISttcgn5BAmGlUxVYTgU9eSK-saJ2N46hg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 via-transparent to-transparent flex items-end justify-center pb-0.5">
+<span class="material-symbols-outlined text-[13px] text-tertiary">check_circle</span>
+</div>
+</div>
+</div>
+<!-- Story Item: Marcus Brody -->
+<div class="story-item group flex items-center gap-space-md p-space-sm rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer shadow-sm" data-user="Marcus Brody">
+<div class="relative flex-shrink-0">
+<div class="p-[2.5px] rounded-full bg-gradient-to-tr from-secondary to-primary">
+<div class="p-[2px] rounded-full bg-surface-container">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Stylized portrait photo of Marcus Brody, product manager sitting at a modern Scandinavian cafe terrace with warm late afternoon sunbeams and reflections" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPzdNwysEpwfgvlFAQeQeFCixDQXoRErShxlNkakGFRscGZzid9mLR-W-_in0HgqgIRc40ZHs9zxAfs00vNlxPEWkq_Zvj35GLBJG39DtrTfUDUAHJTssUnObfLSgMdu2_ehw5fuFlABgkijzi7r1FFmW_wzsKmaYCwLG9QItKJo3um-wy-b9UgHjJM1JmIAinOXH9Shs-oSrIhjqx-PlJd4y981CoyHl_PSiyEPGDKuPCUkMapVB4jA"/>
+</div>
+</div>
+<div class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-secondary text-on-secondary font-label-sm text-[10px] leading-tight font-bold shadow-sm">
+          1
+        </div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">Marcus Brody</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">34m ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Offsite brainstorming notes &amp; wireframes</p>
+</div>
+<div class="w-11 h-14 rounded-lg bg-surface-container-highest overflow-hidden flex-shrink-0 relative">
+<img class="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-300" data-alt="Moody architecture photo of glass skyscraper reflections during golden hour sunset with cool cyan and indigo sky gradients" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPQ9UU_KS_Xw_kujXG0N7q0tKE0X_WNXp89wIOcZ90xc239JtwgL9VkTqatvf8vMZMSh-Cio1xcS8cGU1S5wTKGWfhhKMxE6GqfIUuq8nROE_7anF7YXfRFJUot6bTxmu44aFNAISsk6KqsDNQbxDxKw43WB3cgv3Gh4hfrimbip7yUYk5gaephlISNmDSFF0KA0q4g0jLqponcn94AWr3spZlyZpAdCcpAI398PBbYKm-0uCWHsdtwg"/>
+</div>
+</div>
+<!-- Story Item: Elena Rostova -->
+<div class="story-item group flex items-center gap-space-md p-space-sm rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer shadow-sm" data-user="Elena Rostova">
+<div class="relative flex-shrink-0">
+<div class="p-[2.5px] rounded-full bg-gradient-to-tr from-primary via-tertiary to-secondary">
+<div class="p-[2px] rounded-full bg-surface-container">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Close up photography of Elena Rostova, designer smiling with headphones around neck against deep charcoal minimalist acoustics wall studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxxL58xN7UjTfhVL8Ptm-w9W2qF3h3nA1KuLGMmbwdBGU2oj49nOUK8Qz3SxdmXMiHwxy79LhCQeg6c5LCex3GGVtFCLom23Cq_kY4VGtA0ZJSnOCLb2h1Vw85oFtsCiX9JkqOIciYXN__jtlwsGKS4ocGSQgYErjskbeQrwANFC3MQeaePuzfPkDwhW5DzVk95704K6DxV9SYl-P9mrlDbiwbVUTnSsC3TExFST0hlNNpYokhDq0ezg"/>
+</div>
+</div>
+<div class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-primary text-on-primary font-label-sm text-[10px] leading-tight font-bold shadow-sm">
+          2
+        </div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">Elena Rostova</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">1h ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">New design tokens ready in Figma</p>
+</div>
+<div class="w-11 h-14 rounded-lg bg-surface-container-highest overflow-hidden flex-shrink-0 relative">
+<img class="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-300" data-alt="Aesthetic shot of a designer desk workstation displaying typography cards, color swatch rings, and high precision neon glowing keyboard" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOfBUlq8RXt1MvuaAOJz7w1W4v8pcc_xS_nZm7mGPxH2brzWg4J5UGA4e0JUCVVgABfabh7ye8HE_IO4H49F3FKk3PPrjACyewFpbwzVXp0Z_Aer1Bd6W-XWDLHmdo5dkNiF3q_SlHOSsk35pYiNrl9F5B40p3JFtcQfWZB_aeuZkqpW6hBEuL2rdFqTp2KkUamfIL0CWbUfagJrUyjRZKaANibuDq_VW2FfloIFUHVbIq-fb7cMSW2w"/>
+</div>
+</div>
+<!-- Story Item: Dev Team Hackathon -->
+<div class="story-item group flex items-center gap-space-md p-space-sm rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer shadow-sm" data-user="Dev Team Hackathon">
+<div class="relative flex-shrink-0">
+<div class="p-[2.5px] rounded-full bg-tertiary">
+<div class="p-[2px] rounded-full bg-surface-container">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[26px]">terminal</span>
+</div>
+</div>
+</div>
+<div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tertiary shadow-sm"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">Dev Team Hackathon</h3>
+<span class="font-label-sm text-label-sm text-tertiary font-medium">2h ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Demo day starts in 30 mins! 🏆</p>
+</div>
+<div class="w-11 h-14 rounded-lg bg-surface-container-highest overflow-hidden flex-shrink-0 relative">
+<img class="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-300" data-alt="Dynamic wide snapshot of modern engineering team gathered around dual 4K monitors coding during late night hackathon under ambient cobalt lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgen2QE1JqVyjEMDcuVK7q_KACmBVi_ZN6dkhLTalBsUpI84KWAkHWx17PA7g1sxuP9_bZ_dtbqjv2xPpH9UW-ZGeVeAvI3BFFZJ4cjOh18mYvniCCM6K2YWhd3iILHg_OsVZ9rJTXBL9R2QIN--QoVvYDMSTUR6GJEbw9Xcdb4T1QJj_LdTXJ6DisPx7-meQ9-zToPjZwpLpgVzjDupfie2q6HOxKR8APy43V2mtW36Mq0gcTpOltPQ"/>
+</div>
+</div>
+</div>
+<!-- Viewed Updates Collapsible Section -->
+<div class="flex flex-col space-y-space-xs pt-1">
+<button class="flex items-center justify-between w-full py-1 text-left group" id="viewed-toggle-btn">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant/80">Viewed Updates</span>
+<span class="w-4 h-4 rounded-full bg-surface-container text-on-surface-variant text-[10px] flex items-center justify-center font-bold">2</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant transition-transform duration-200" id="viewed-arrow">expand_more</span>
+</button>
+<div class="flex flex-col space-y-space-xs transition-all duration-300" id="viewed-content">
+<!-- Viewed Item: Alex Rivera -->
+<div class="flex items-center gap-space-md p-space-sm rounded-xl bg-surface-container/60 hover:bg-surface-container transition-colors cursor-pointer opacity-75 hover:opacity-100">
+<div class="relative flex-shrink-0">
+<div class="p-[2px] rounded-full bg-outline-variant/60">
+<div class="p-[2px] rounded-full bg-surface-container">
+<img class="w-11 h-11 rounded-full object-cover grayscale-[35%]" data-alt="Portrait photo of Alex Rivera, young software architect wearing glasses in minimalist dark grey backdrop with subtle teal rim lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeIfQ0qDnAXaP9lk8GV7p4up0tEo3uNFJyig6cSfPtCWpIluEONqvCODXg1x2UV8MlWrufMdLeaMBFD1kSP_JoEBTdRWZz3UxXTtfu99Z5WUxlABdXWB-a-Hqrhsjpi5il7884hY1wAGuktMABIpc5rMNfe2JJtswX6LKU7BbzyxqGkRlYQ0CzOLMEH_mLkd6q44E-6ILBT2lvZO3AKSak7mOAnOwE_esfl9CVCHmAdrgISjbdvuhJCQ"/>
+</div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-headline-md text-[15px] leading-5 text-on-surface/90 truncate">Alex Rivera</h4>
+<span class="font-label-sm text-label-sm text-on-surface-variant/70">Yesterday, 11:20 PM</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant/70 truncate">Midnight sound synthesis experiments</p>
+</div>
+<div class="w-10 h-12 rounded-lg bg-surface-container-highest overflow-hidden flex-shrink-0 opacity-60">
+<img class="w-full h-full object-cover" data-alt="Macro photo of hardware audio synthesizer controls with small amber and turquoise LED indicator lights in low lit studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBStrv7NhwAz0gcJPvQgLyYQw5ULEKTFUI1ZKGF7QRaDM8fihiwOtm9-Z9kgQAc1sR5MSQYeeieNLRFtUnIZh8kJb2XQ5TE29Jjt1obSmHGjjKIlIIjeQSiAokSNFRqXrjgEfe7B4WSFabB8QG-_iokCYXlenIVBcTw8EXqy-QlrcKBq0g0lKdX23OEDslYFWjzAkPM8jQoH2sadp5DrK0sPmWnoKChqxmc4P6KTxpsXqqY1pzz0k9ovg"/>
+</div>
+</div>
+<!-- Viewed Item: Liam Vance -->
+<div class="flex items-center gap-space-md p-space-sm rounded-xl bg-surface-container/60 hover:bg-surface-container transition-colors cursor-pointer opacity-75 hover:opacity-100">
+<div class="relative flex-shrink-0">
+<div class="p-[2px] rounded-full bg-outline-variant/60">
+<div class="p-[2px] rounded-full bg-surface-container">
+<img class="w-11 h-11 rounded-full object-cover grayscale-[35%]" data-alt="Portrait photography of Liam Vance, front-end engineer enjoying coffee in a rain soaked glass cafe with blurred city headlights outside" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBM3NVlyXMXgbAxwCVKutNNbtRLI70m7jLsQ-ZSBX4aLKpexzxqIHKUGRUCHioVR4QccYMxWZJK0cEAlKLAm_NrZQ2XHKmpgfgxZLsn4jOC626N3J0b0Bf3DAAsTbfd-iRZDzWpjHUzT3IrxCQorWZxW8Kf599PTfJ3uI2QqpjbZVYbWBjDbLVVfttjqUCIac4kXKNQAKfz3mYHjSy5biECjP-bv78wsEdVpoVjb21Lf5A4q48Jw_JnWg"/>
+</div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-headline-md text-[15px] leading-5 text-on-surface/90 truncate">Liam Vance</h4>
+<span class="font-label-sm text-label-sm text-on-surface-variant/70">Yesterday, 8:45 PM</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant/70 truncate">Rainy evening deep dive into WebGPU</p>
+</div>
+<div class="w-10 h-12 rounded-lg bg-surface-container-highest overflow-hidden flex-shrink-0 opacity-60">
+<img class="w-full h-full object-cover" data-alt="Atmospheric moody capture of raindrops sliding down cafe glass window with bokeh neon urban traffic colors behind" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDn5CIBytRVPkOd7CJk7nSL9C2Hh3qdsc1-6fq1QlnTpX6Gx4qzPTEm9zne-V7LFSa6KjneCBS7-o9J0LQKTaMwwKz79NzeC4ryWI9J7_RSiYEi1pzd11t06phvCnHgkXI7gLXzbU3zW7HV1vnAVuf4N_BeifwNq7kkQGOhzAhZ9uAi3jCOYWvgheFd64_527pWdL6YmG0Hjt8pbnFShPmQ5NJEBhLrdpYrwFlJzm6_NvQgajQ7i2uhA"/>
+</div>
+</div>
+</div>
+</div>
+<!-- End-to-End Privacy Assurance Footnote Card -->
+<div class="mt-space-sm p-space-md rounded-xl bg-surface-container-low flex items-start gap-space-md shadow-sm">
+<div class="w-8 h-8 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-semibold">End-to-End Encrypted</span>
+<span class="material-symbols-outlined text-[14px] text-tertiary" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-relaxed">
+        Your status updates are end-to-end encrypted and visible only to your selected contacts.
+      </p>
+</div>
+</div>
+<!-- Fullscreen Interactive Story Viewer Modal -->
+<div class="fixed inset-0 z-50 bg-surface-container-lowest/95 backdrop-blur-md hidden flex-col justify-between p-space-md transition-opacity duration-200" id="story-modal">
+<!-- Progress Indicator Bar -->
+<div class="w-full flex items-center gap-1.5 pt-safe">
+<div class="h-1 flex-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-full" id="story-bar-1"></div>
+</div>
+<div class="h-1 flex-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-2/3" id="story-bar-2"></div>
+</div>
+<div class="h-1 flex-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-surface-variant w-0" id="story-bar-3"></div>
+</div>
+</div>
+<!-- Viewer Top Meta Header -->
+<div class="flex items-center justify-between mt-space-sm">
+<div class="flex items-center gap-space-sm">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Portrait photo of Sarah Chen in moody cyan-violet lighting looking confident" id="modal-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHOwDlyj_ruoyi79xHXIAPIAPel_L4UBtlqbJ2GPZH2qdnQPBZ-yd72oFPhftxICXzIBF75nHLwLXIM9b_-rG5DutRNdwDsK8HcrmxtfY121pETqxRnwJcvSzvFMCOQLfxtT_MYCCg0Rnvvb0kaklQbEDrQRyANnNtcbUbMKYb104n28EghEFOFtDbqO2V8sVztHcrEe7E-9uF669D2ztlf3qivpdjmDRnO3ink8OE5UlUZVau_20P0A"/>
+<div class="flex flex-col">
+<span class="font-headline-md text-[15px] text-on-surface font-semibold leading-snug" id="modal-name">Sarah Chen</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" id="modal-time">12 minutes ago</span>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Pause story" class="w-9 h-9 rounded-full bg-surface-container-high/80 text-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">pause</span>
+</button>
+<button aria-label="Close story viewer" class="w-9 h-9 rounded-full bg-surface-container-high/80 text-on-surface flex items-center justify-center" id="modal-close-btn">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+</div>
+<!-- Main Visual Content Area -->
+<div class="flex-1 my-space-md rounded-2xl overflow-hidden relative bg-surface-container-high flex flex-col justify-end p-space-lg shadow-xl">
+<img class="absolute inset-0 w-full h-full object-cover" data-alt="High resolution dynamic vertical photo of modern high tech data workspace with glowing neon code screens, server racks and ambient indigo light" id="modal-media" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkLEIidTkuY9ZwUzrDxIEKdaKzFbv_Bln-S2PKAZFtmQQoLdNbGlThdP4MkRsULJBl32XPRt9GkOoYgV9ONLdtYktlx9nPbLADXwa6_F2Yr6zJEiIKHyT-33EacwuIYckLZXAwavToGZLzfxEsdpnyzOOuHS9URLgaSlUBhPEoYYYIiuXh8IE7srV1AeVRGnyLAY6OeB2EYudRa2l-sK9O9BOUi5LWGCWvv9v6zArUlcjBL05G9pnrxQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-surface-container-lowest/30 to-transparent"></div>
+<div class="relative z-10 space-y-space-xs">
+<span class="px-2.5 py-1 rounded-full bg-primary/20 text-primary font-label-sm text-label-sm font-semibold inline-block backdrop-blur-sm">Build Complete</span>
+<p class="font-headline-md text-headline-md text-on-surface leading-snug" id="modal-caption">
+          Shipped v2.4 build to production with zero regressions. Big thanks to the runtime team! 🚀
+        </p>
+</div>
+</div>
+<!-- Interactive Reaction & Reply Bar -->
+<div class="flex items-center gap-space-sm pb-safe">
+<div class="flex-1 bg-surface-container-high rounded-full px-space-md py-2 flex items-center gap-space-sm">
+<input class="bg-transparent text-on-surface font-body-md text-body-md w-full focus:outline-none placeholder:text-on-surface-variant" placeholder="Reply to Sarah Chen..." type="text"/>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">sentiment_satisfied</span>
+</button>
+</div>
+<button class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0 shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  (function initStoriesExperience() {
+    // Synchronize bottom navigation pill style
+    const storiesNavLink = document.querySelector('nav a[data-path="stories"]');
+    if (storiesNavLink) {
+      document.querySelectorAll('nav a').forEach(el => {
+        el.classList.remove('text-primary');
+        el.classList.add('text-on-surface-variant');
+      });
+      storiesNavLink.classList.remove('text-on-surface-variant');
+      storiesNavLink.classList.add('text-primary');
+    }
+
+    // Toggle viewed updates accordion
+    const toggleBtn = document.getElementById('viewed-toggle-btn');
+    const viewedContent = document.getElementById('viewed-content');
+    const arrow = document.getElementById('viewed-arrow');
+
+    if (toggleBtn && viewedContent && arrow) {
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = viewedContent.classList.contains('hidden');
+        if (isHidden) {
+          viewedContent.classList.remove('hidden');
+          arrow.style.transform = 'rotate(0deg)';
+        } else {
+          viewedContent.classList.add('hidden');
+          arrow.style.transform = 'rotate(-90deg)';
+        }
+      });
+    }
+
+    // Story preview viewer modal trigger
+    const storyItems = document.querySelectorAll('.story-item');
+    const modal = document.getElementById('story-modal');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const modalName = document.getElementById('modal-name');
+
+    storyItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const userName = item.getAttribute('data-user') || 'Sarah Chen';
+        if (modalName) modalName.textContent = userName;
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        }
+      });
+    });
+
+    if (modalCloseBtn && modal) {
+      modalCloseBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_-4px_16px_rgba(0,0,0,0.25)]" data-active-classes="text-primary"><div class="flex justify-around items-center h-16 px-space-sm"><a class="flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[44px] px-space-xs text-on-surface-variant hover:text-on-surface transition-all" data-path="chats" href="#"><span class="material-symbols-outlined text-[22px]">chat_bubble</span><span class="font-label-sm text-label-sm">Chats</span></a><a aria-current="page" class="flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[44px] px-space-xs transition-all text-primary" data-path="stories" href="#"><span class="material-symbols-outlined text-[22px]">history_toggle_off</span><span class="font-label-sm text-label-sm">Stories</span></a><a class="flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[44px] px-space-xs text-on-surface-variant hover:text-on-surface transition-all" data-path="rooms" href="#"><span class="material-symbols-outlined text-[22px]">forum</span><span class="font-label-sm text-label-sm">Rooms</span></a><a class="flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[44px] px-space-xs text-on-surface-variant hover:text-on-surface transition-all" data-path="calls" href="#"><span class="material-symbols-outlined text-[22px]">call</span><span class="font-label-sm text-label-sm">Calls</span></a></div></nav>
+</body></html>
