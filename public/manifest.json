@@ -1,0 +1,55 @@
+{
+  "name": "NEXUS CHAT",
+  "short_name": "Nexus",
+  "description": "Next-generation secure real-time messaging platform with end-to-end encryption and Gemini AI.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "categories": ["social", "communication", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Chats",
+      "url": "/dashboard",
+      "description": "Open active conversation feeds"
+    },
+    {
+      "name": "Moments",
+      "url": "/stories",
+      "description": "View 24-hour moments"
+    },
+    {
+      "name": "Settings",
+      "url": "/settings",
+      "description": "Customize theme and security"
+    }
+  ]
+}
