@@ -7,19 +7,28 @@
 
 @layer base {
   :root {
-    --background: 16 19 26;
-    --foreground: 225 226 235;
+    --background: 2 6 23;
+    --foreground: 248 250 252;
+  }
+
+  html.dark, html.dark body {
+    background-color: #020617;
+    color: #f8fafc;
+  }
+
+  html.light, html.light body {
+    background-color: #f8fafc;
+    color: #0f172a;
   }
 
   html, body {
     width: 100vw;
     margin: 0;
     padding: 0;
-    background-color: #10131a;
-    color: #e1e2eb;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   body {

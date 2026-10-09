@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
+import { useAvatarPreview } from '@/context/AvatarPreviewContext';
 import { FirestoreUser } from '@/lib/db';
 
 export const ChatList: React.FC = () => {
   const router = useRouter();
   const { user: currentUser } = useAuth();
+  const { openAvatarPreview } = useAvatarPreview();
   const {
     chats,
     users,
@@ -135,7 +137,21 @@ export const ChatList: React.FC = () => {
                   onClick={() => handleStartChat(u)}
                   className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none"
                 >
-                  <div className="relative w-12 h-12 rounded-full p-0.5 ring-2 ring-white/10 group-hover:ring-indigo-500 transition-all duration-300 group-hover:scale-105">
+                  <div
+                    className="relative w-12 h-12 rounded-full p-0.5 ring-2 ring-white/10 group-hover:ring-indigo-500 hover:ring-indigo-400 transition-all duration-300 group-hover:scale-105 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openAvatarPreview({
+                        name: u.name,
+                        avatarUrl: u.avatarUrl,
+                        username: u.username,
+                        bio: u.statusText || u.bio || 'Encrypted Firestore Node · AES-256 Enabled',
+                        statusText: u.isOnline ? 'Online' : 'Offline',
+                        isOnline: u.isOnline,
+                      });
+                    }}
+                    title="View high-resolution profile picture"
+                  >
                     <img
                       alt={u.name}
                       className="w-full h-full rounded-full object-cover bg-slate-800"
@@ -191,11 +207,28 @@ export const ChatList: React.FC = () => {
                 href={`/chat/${chat.id}`}
                 className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-900/60 hover:bg-slate-800/80 backdrop-blur-xl transition-all duration-200 cursor-pointer group shadow-lg border border-white/5 hover:border-indigo-500/30 active:scale-[0.99]"
               >
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
+                {/* Avatar with DP Pop-up trigger */}
+                <div
+                  className="relative flex-shrink-0 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openAvatarPreview({
+                      name: chat.name,
+                      avatarUrl:
+                        chat.avatarUrl ||
+                        'https://lh3.googleusercontent.com/aida-public/AB6AXuCxCD8sPJkUytj0srEpy1ECOBUonoJ3PqNZPSrXiWTxt6SpkHPejcnHm16ly4E-Q9QOMFTrJjX5pZrRtke9jamOI5jlojAk9WXPez2DTqbG902Vab6czWQ0rvL4ODMXAkXx_7YA9LpEb11NHxeGQhNhfGSl7UEJ7bjFv-i1zD8IwwUjVQIBPo2zISSTTcMZzb3vl0XnarT7nys0q6dw16LInipxkxwCv-gFBMT1pl76pDOLgBj8Z_mkCw',
+                      username: chat.name.toLowerCase().replace(/\s+/g, '_'),
+                      bio: chat.roleBadge ? `Role: ${chat.roleBadge} · Verified E2EE Signal Node` : 'Direct peer encrypted conversation channel.',
+                      statusText: chat.isOnline ? 'Online · Signal Active' : 'Offline',
+                      isOnline: chat.isOnline,
+                    });
+                  }}
+                  title="View high-resolution profile picture"
+                >
                   <img
                     alt={chat.name}
-                    className="w-12 h-12 rounded-full object-cover ring-2 ring-white/10 group-hover:ring-indigo-400/50 transition-all bg-slate-800"
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-white/10 group-hover:ring-indigo-400/50 hover:scale-105 transition-all bg-slate-800 shadow-md"
                     src={
                       chat.avatarUrl ||
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuCxCD8sPJkUytj0srEpy1ECOBUonoJ3PqNZPSrXiWTxt6SpkHPejcnHm16ly4E-Q9QOMFTrJjX5pZrRtke9jamOI5jlojAk9WXPez2DTqbG902Vab6czWQ0rvL4ODMXAkXx_7YA9LpEb11NHxeGQhNhfGSl7UEJ7bjFv-i1zD8IwwUjVQIBPo2zISSTTcMZzb3vl0XnarT7nys0q6dw16LInipxkxwCv-gFBMT1pl76pDOLgBj8Z_mkCw'
@@ -284,17 +317,33 @@ export const ChatList: React.FC = () => {
                     className="flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 backdrop-blur-md transition-colors cursor-pointer border border-white/5 hover:border-indigo-500/30"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="relative">
+                      <div
+                        className="relative cursor-pointer group/avatar"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAvatarPreview({
+                            name: u.name,
+                            avatarUrl:
+                              u.avatarUrl ||
+                              'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA',
+                            username: u.username,
+                            bio: u.statusText || u.bio || 'Encrypted Firestore Node · AES-256 Enabled',
+                            statusText: u.isOnline ? 'Online' : 'Offline',
+                            isOnline: u.isOnline,
+                          });
+                        }}
+                        title="View profile picture"
+                      >
                         <img
                           alt={u.name}
-                          className="w-10 h-10 rounded-full object-cover bg-slate-700"
+                          className="w-10 h-10 rounded-full object-cover bg-slate-700 ring-2 ring-white/10 group-hover/avatar:ring-indigo-400 transition-all shadow-sm"
                           src={
                             u.avatarUrl ||
                             'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA'
                           }
                         />
                         {u.isOnline && (
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900 shadow-sm" />
                         )}
                       </div>
                       <div className="flex flex-col">

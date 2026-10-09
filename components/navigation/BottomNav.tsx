@@ -4,10 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
+import { useTheme } from '@/context/ThemeContext';
 
 export const BottomNav: React.FC = () => {
   const pathname = usePathname();
   const { unreadTotal } = useChat();
+  const { theme } = useTheme();
 
   const isChats = pathname.startsWith('/dashboard') || pathname.startsWith('/chat');
   const isStories = pathname.startsWith('/stories');
@@ -15,7 +17,9 @@ export const BottomNav: React.FC = () => {
   const isSettings = pathname.startsWith('/settings');
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/85 backdrop-blur-xl border-t border-white/10 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+    <nav className={`fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.3)] transition-all ${
+      theme === 'dark' ? 'bg-slate-950/85 border-white/10' : 'bg-white/90 border-slate-200'
+    }`}>
       <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-around">
         {/* Chats Tab */}
         <Link

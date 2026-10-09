@@ -9,11 +9,15 @@ import { BottomNav } from '@/components/navigation/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
 import { useCall } from '@/context/CallContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useAvatarPreview } from '@/context/AvatarPreviewContext';
 
 export default function CallLogsPage() {
   const { user } = useAuth();
   const { users } = useChat();
   const { startCall } = useCall();
+  const { theme } = useTheme();
+  const { openAvatarPreview } = useAvatarPreview();
   const [filter, setFilter] = useState<'all' | 'missed'>('all');
   const [dialerOpen, setDialerOpen] = useState(false);
   const [dialTarget, setDialTarget] = useState('');
@@ -94,12 +98,16 @@ export default function CallLogsPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
+    <div className={`flex flex-col min-h-screen transition-colors duration-300 ${
+      theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
+    }`}>
       <TopHeader title="NexusChat" subtitle="Encrypted Calls" />
 
       <main className="flex-1 flex flex-col pt-16 pb-24 max-w-4xl mx-auto w-full px-4 py-4 gap-4">
         {/* Filter Switcher */}
-        <div className="w-full p-1 bg-slate-900/80 backdrop-blur-xl rounded-2xl flex items-center shadow-inner border border-white/10">
+        <div className={`w-full p-1 rounded-2xl flex items-center shadow-inner border backdrop-blur-xl ${
+          theme === 'dark' ? 'bg-slate-900/80 border-white/10' : 'bg-slate-200 border-slate-300'
+        }`}>
           <button
             type="button"
             onClick={() => setFilter('all')}
@@ -138,10 +146,25 @@ export default function CallLogsPage() {
                 className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/60 hover:bg-slate-800/80 backdrop-blur-xl transition-all duration-200 border border-white/5 hover:border-indigo-500/30 shadow-lg"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="relative shrink-0">
+                  <div
+                    className="relative shrink-0 cursor-pointer group/avatar"
+                    onClick={() =>
+                      openAvatarPreview({
+                        name: targetName,
+                        avatarUrl:
+                          targetAvatar ||
+                          'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA',
+                        username: targetName.toLowerCase().replace(/\s+/g, '_'),
+                        bio: 'Encrypted WebRTC call peer · Verified node',
+                        statusText: 'Call Log Record',
+                        isOnline: true,
+                      })
+                    }
+                    title="View high-resolution profile picture"
+                  >
                     <img
                       alt={targetName}
-                      className="w-12 h-12 rounded-full object-cover ring-2 ring-white/10 bg-slate-800"
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-white/10 group-hover/avatar:ring-indigo-400 group-hover/avatar:scale-105 transition-all bg-slate-800 shadow-md"
                       src={
                         targetAvatar ||
                         'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA'

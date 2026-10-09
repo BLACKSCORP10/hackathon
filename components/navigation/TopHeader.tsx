@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useAvatarPreview } from '@/context/AvatarPreviewContext';
 import { ProfileModal } from '@/components/profile/ProfileModal';
 
 interface TopHeaderProps {
@@ -20,6 +22,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onSearchClick,
 }) => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const { openAvatarPreview } = useAvatarPreview();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -38,16 +42,31 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   const defaultAvatar =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA';
 
+  const handleAvatarClick = () => {
+    openAvatarPreview({
+      name: user?.name || 'Nexus Operative',
+      avatarUrl: user?.avatarUrl || defaultAvatar,
+      username: user?.username || user?.email?.split('@')[0] || 'node',
+      bio: user?.statusText || user?.bio || 'Quantum nodes syncing · Standby for transmissions',
+      statusText: 'Online · Verified Firebase Node',
+      isOnline: true,
+    });
+  };
+
   return (
     <>
-      <header className="fixed top-0 w-full z-40 bg-slate-950/85 backdrop-blur-xl border-b border-white/10 pt-safe transition-all shadow-lg">
+      <header className={`fixed top-0 w-full z-40 backdrop-blur-xl border-b pt-safe transition-all shadow-lg ${
+        theme === 'dark' ? 'bg-slate-950/85 border-white/10' : 'bg-white/85 border-slate-200'
+      }`}>
         <div className="h-16 max-w-4xl mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {showBack ? (
               <button
                 onClick={() => router.back()}
                 aria-label="Go back"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-slate-300 hover:text-white hover:bg-slate-900 transition-colors -ml-1 active:scale-95"
+                className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors -ml-1 active:scale-95 ${
+                  theme === 'dark' ? 'text-slate-300 hover:text-white hover:bg-slate-900' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                }`}
               >
                 <span className="material-symbols-outlined text-[22px]">arrow_back_ios_new</span>
               </button>
@@ -60,7 +79,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             )}
 
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-white leading-none tracking-tight">
+              <span className={`text-sm font-bold leading-none tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                 {title}
               </span>
               <span className="text-[11px] font-mono text-cyan-400 font-medium leading-none mt-1">
@@ -70,22 +89,38 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Quick Dark/Light Mode Switcher */}
+            <button
+              onClick={toggleTheme}
+              aria-label="Toggle Dark/Light Mode"
+              className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors active:scale-95 ${
+                theme === 'dark' ? 'text-slate-400 hover:text-amber-400 hover:bg-slate-900' : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-100'
+              }`}
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
+
             {onSearchClick && (
               <button
                 onClick={onSearchClick}
                 aria-label="Search"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-slate-900 transition-colors active:scale-95"
+                className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors active:scale-95 ${
+                  theme === 'dark' ? 'text-slate-400 hover:text-white hover:bg-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
               >
                 <span className="material-symbols-outlined text-[20px]">search</span>
               </button>
             )}
 
-            {/* Profile Avatar Click to Edit Profile */}
+            {/* Profile Avatar Click to View DP */}
             <button
               type="button"
-              onClick={() => setProfileModalOpen(true)}
+              onClick={handleAvatarClick}
               className="relative flex items-center justify-center group focus:outline-none"
-              title="Edit Profile"
+              title="View profile picture"
             >
               <img
                 alt="Profile"

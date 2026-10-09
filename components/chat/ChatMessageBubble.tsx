@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { FirestoreMessage } from '@/lib/db';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
+import { useAvatarPreview } from '@/context/AvatarPreviewContext';
 
 interface ChatMessageBubbleProps {
   message: FirestoreMessage;
@@ -15,6 +16,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
   onReact,
   onDelete,
 }) => {
+  const { openAvatarPreview } = useAvatarPreview();
   const [showPicker, setShowPicker] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -95,18 +97,32 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
         <div className="relative rounded-3xl p-4 bg-gradient-to-b from-slate-900/90 via-slate-900/80 to-slate-950/90 backdrop-blur-xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.15)] rounded-tl-sm flex flex-col gap-2.5">
           {/* AI Header */}
           <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-indigo-500/20 p-0.5 border border-indigo-500/40 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() =>
+                openAvatarPreview({
+                  name: 'Nexus Gemini 2.5 Flash',
+                  avatarUrl: 'https://cdn.worldvectorlogo.com/logos/google-gemini-icon.svg',
+                  username: 'gemini_flash_ai',
+                  bio: 'Google DeepMind High-Speed Multi-Modal AI Assistant with Real-Time Synthesis.',
+                  statusText: 'AI Real-Time Engine Active',
+                  isOnline: true,
+                })
+              }
+              className="flex items-center gap-2 group/ai cursor-pointer focus:outline-none"
+              title="View Gemini AI Profile"
+            >
+              <div className="w-6 h-6 rounded-lg bg-indigo-500/20 p-0.5 border border-indigo-500/40 flex items-center justify-center group-hover/ai:ring-2 ring-indigo-400/50 transition-all">
                 <img
                   src="https://cdn.worldvectorlogo.com/logos/google-gemini-icon.svg"
                   alt="Gemini"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-cyan-300 to-purple-300 font-mono">
+              <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-cyan-300 to-purple-300 font-mono group-hover/ai:underline">
                 Nexus Gemini 2.5 Flash
               </span>
-            </div>
+            </button>
 
             <div className="flex items-center gap-1.5">
               <button
@@ -141,19 +157,49 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
     );
   }
 
+  const defaultPeerAvatar =
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA';
+
+  const handlePeerAvatarClick = () => {
+    openAvatarPreview({
+      name: message.senderName || 'Nexus Operative',
+      avatarUrl: message.senderAvatar || defaultPeerAvatar,
+      username: message.senderName ? message.senderName.toLowerCase().replace(/\s+/g, '_') : 'operative',
+      bio: 'Connected via encrypted Firestore signal channel with AES-256 E2EE.',
+      statusText: 'Verified Network Operative',
+      isOnline: true,
+    });
+  };
+
   return (
     <>
       <div
-        className={`flex flex-col gap-1 group relative max-w-[88%] sm:max-w-[78%] animate-fade-in ${
-          isSelf ? 'self-end items-end' : 'self-start items-start'
+        className={`flex gap-2 group relative max-w-[88%] sm:max-w-[78%] animate-fade-in ${
+          isSelf ? 'self-end justify-end' : 'self-start justify-start items-end'
         }`}
       >
-        {/* Floating Quick Actions Bar (Reactions & Delete) */}
-        <div
-          className={`z-10 flex items-center gap-1 p-0.5 rounded-full bg-slate-900/90 backdrop-blur-md shadow-lg border border-white/10 transition-opacity opacity-0 group-hover:opacity-100 ${
-            Object.keys(reactions).length > 0 ? 'opacity-100' : ''
-          } ${isSelf ? '-mb-2 mr-2' : '-mb-2 ml-2'}`}
-        >
+        {!isSelf && (
+          <button
+            type="button"
+            onClick={handlePeerAvatarClick}
+            className="w-7 h-7 rounded-full overflow-hidden shrink-0 mb-1 ring-1 ring-white/20 hover:ring-2 hover:ring-indigo-400 focus:outline-none transition-all cursor-pointer shadow-md active:scale-95"
+            title={`View ${message.senderName || 'Operative'}'s profile picture`}
+          >
+            <img
+              src={message.senderAvatar || defaultPeerAvatar}
+              alt={message.senderName || 'Operative'}
+              className="w-full h-full object-cover bg-slate-800"
+            />
+          </button>
+        )}
+
+        <div className={`flex flex-col gap-1 ${isSelf ? 'items-end' : 'items-start'}`}>
+          {/* Floating Quick Actions Bar (Reactions & Delete) */}
+          <div
+            className={`z-10 flex items-center gap-1 p-0.5 rounded-full bg-slate-900/90 backdrop-blur-md shadow-lg border border-white/10 transition-opacity opacity-0 group-hover:opacity-100 ${
+              Object.keys(reactions).length > 0 ? 'opacity-100' : ''
+            } ${isSelf ? '-mb-2 mr-2' : '-mb-2 ml-2'}`}
+          >
           {/* Reaction Pills */}
           {Object.entries(reactions).map(([emoji, count]) => (
             <button
@@ -389,6 +435,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Expanded Image Modal */}

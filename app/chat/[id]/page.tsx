@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
 import { useCall } from '@/context/CallContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useAvatarPreview } from '@/context/AvatarPreviewContext';
 import { ChatMessageBubble } from '@/components/chat/ChatMessageBubble';
 import { ChatInputBar } from '@/components/chat/ChatInputBar';
 
@@ -13,6 +15,8 @@ export default function ActiveChatThreadPage() {
   const router = useRouter();
   const chatId = (params?.id as string) || '';
   const { user } = useAuth();
+  const { getChatBackgroundStyle } = useTheme();
+  const { openAvatarPreview } = useAvatarPreview();
   const {
     activeChat,
     messages,
@@ -61,6 +65,20 @@ export default function ActiveChatThreadPage() {
     );
   };
 
+  const handleAvatarClick = () => {
+    if (!activeChat) return;
+    openAvatarPreview({
+      name: activeChat.name || 'Nexus Contact',
+      avatarUrl:
+        activeChat.avatarUrl ||
+        'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA',
+      username: activeChat.name ? activeChat.name.toLowerCase().replace(/\s+/g, '_') : 'contact',
+      bio: activeChat.roleBadge ? `Role: ${activeChat.roleBadge} · Verified E2EE Signal Node` : 'Direct peer encrypted messaging channel.',
+      statusText: 'Online · WebRTC & E2EE Active',
+      isOnline: true,
+    });
+  };
+
   const handleSendMessage = (
     text: string,
     type: 'text' | 'image' | 'voice' | 'code' | 'file' | 'ai' = 'text',
@@ -71,7 +89,10 @@ export default function ActiveChatThreadPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
+    <div
+      className="flex flex-col min-h-screen bg-slate-950 text-slate-100 transition-all duration-300"
+      style={getChatBackgroundStyle()}
+    >
       {/* Sticky Active Chat Glassmorphic Header */}
       <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-xl px-4 py-3 flex flex-col gap-1.5 shadow-2xl pt-safe border-b border-white/10">
         <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
@@ -84,17 +105,23 @@ export default function ActiveChatThreadPage() {
               <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
             </button>
 
-            <div className="relative flex-shrink-0">
+            {/* Profile Avatar with DP Modal Pop-up trigger */}
+            <button
+              type="button"
+              onClick={handleAvatarClick}
+              className="relative flex-shrink-0 cursor-pointer group focus:outline-none"
+              title="View full profile picture & info"
+            >
               <img
                 alt={activeChat?.name || 'Contact'}
-                className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/40 bg-slate-800"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/40 group-hover:ring-indigo-400 group-hover:scale-105 transition-all bg-slate-800 shadow-md"
                 src={
                   activeChat?.avatarUrl ||
                   'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA'
                 }
               />
               <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-slate-950 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            </div>
+            </button>
 
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">

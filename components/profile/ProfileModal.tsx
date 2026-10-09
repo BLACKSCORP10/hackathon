@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
+import { useAvatarPreview } from '@/context/AvatarPreviewContext';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { updateProfile } = useChat();
+  const { openAvatarPreview } = useAvatarPreview();
 
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.statusText || user?.bio || 'Quantum nodes syncing · Standby');
@@ -104,13 +106,37 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               className="hidden"
             />
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="text-xs text-cyan-400 font-semibold hover:underline"
-            >
-              Change Photo
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-cyan-400 font-semibold hover:underline flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-sm">photo_camera</span>
+                <span>Change Photo</span>
+              </button>
+              <span className="text-slate-600">•</span>
+              <button
+                type="button"
+                onClick={() =>
+                  openAvatarPreview({
+                    name: name || user?.name || 'Operative',
+                    avatarUrl:
+                      avatarUrl ||
+                      user?.avatarUrl ||
+                      'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA',
+                    username: user?.username || 'node',
+                    bio: bio || user?.statusText || 'Quantum nodes syncing · Standby',
+                    statusText: 'Online · Verified Firebase Node',
+                    isOnline: true,
+                  })
+                }
+                className="text-xs text-indigo-300 font-semibold hover:underline flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-sm">fullscreen</span>
+                <span>Preview DP</span>
+              </button>
+            </div>
           </div>
 
           {/* Display Name */}
