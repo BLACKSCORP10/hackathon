@@ -19,6 +19,7 @@ export default function ActiveChatThreadPage() {
   const { openAvatarPreview } = useAvatarPreview();
   const {
     activeChat,
+    users,
     messages,
     isAiThinking,
     selectChat,
@@ -31,6 +32,16 @@ export default function ActiveChatThreadPage() {
   const { startCall } = useCall();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const otherParticipantId =
+    activeChat?.participants?.find((p) => p !== user?.uid) || activeChat?.id;
+  const otherUser = users.find((u) => u.uid === otherParticipantId);
+  const recipientPhone =
+    activeChat?.phoneNumber ||
+    activeChat?.phone ||
+    otherUser?.phoneNumber ||
+    otherUser?.phone ||
+    '';
 
   // Initialize and select chat on mount or route change
   useEffect(() => {
@@ -56,9 +67,10 @@ export default function ActiveChatThreadPage() {
     startCall(
       {
         uid: targetUserId,
-        name: activeChat.name || 'Nexus Contact',
+        name: activeChat.name || otherUser?.name || 'Nexus Contact',
         avatarUrl:
           activeChat.avatarUrl ||
+          otherUser?.avatarUrl ||
           'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA',
       },
       type
@@ -68,14 +80,17 @@ export default function ActiveChatThreadPage() {
   const handleAvatarClick = () => {
     if (!activeChat) return;
     openAvatarPreview({
-      name: activeChat.name || 'Nexus Contact',
+      name: activeChat.name || otherUser?.name || 'Nexus Contact',
       avatarUrl:
         activeChat.avatarUrl ||
+        otherUser?.avatarUrl ||
         'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA',
       username: activeChat.name ? activeChat.name.toLowerCase().replace(/\s+/g, '_') : 'contact',
-      bio: activeChat.roleBadge ? `Role: ${activeChat.roleBadge} · Verified E2EE Signal Node` : 'Direct peer encrypted messaging channel.',
-      statusText: 'Online · WebRTC & E2EE Active',
-      isOnline: true,
+      phone: recipientPhone,
+      phoneNumber: recipientPhone,
+      bio: otherUser?.bio || otherUser?.statusText || (activeChat.roleBadge ? `Role: ${activeChat.roleBadge} · Verified E2EE Signal Node` : 'Direct peer encrypted messaging channel.'),
+      statusText: otherUser?.isOnline ? 'Online · WebRTC & E2EE Active' : 'Offline · Encrypted Node',
+      isOnline: otherUser ? otherUser.isOnline : true,
     });
   };
 
@@ -117,6 +132,7 @@ export default function ActiveChatThreadPage() {
                 className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/40 group-hover:ring-indigo-400 group-hover:scale-105 transition-all bg-slate-800 shadow-md"
                 src={
                   activeChat?.avatarUrl ||
+                  otherUser?.avatarUrl ||
                   'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA'
                 }
               />
@@ -126,7 +142,7 @@ export default function ActiveChatThreadPage() {
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-bold text-slate-100 truncate">
-                  {activeChat?.name || 'Nexus Contact'}
+                  {activeChat?.name || otherUser?.name || 'Nexus Contact'}
                 </span>
                 {activeChat?.roleBadge && (
                   <span className="px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono text-[10px] flex-shrink-0 border border-indigo-500/30">
@@ -134,11 +150,22 @@ export default function ActiveChatThreadPage() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[11px] text-emerald-400 font-medium">
-                  Online
-                </span>
+              <div className="flex items-center gap-2 text-[11px] font-mono">
+                {recipientPhone ? (
+                  <span className="text-cyan-400 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">call</span>
+                    <span>{recipientPhone}</span>
+                  </span>
+                ) : (
+                  <span className="text-slate-400">Encrypted Channel</span>
+                )}
+                <span className="text-slate-600">•</span>
+                <div className="flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${otherUser?.isOnline !== false ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                  <span className={otherUser?.isOnline !== false ? 'text-emerald-400 font-medium' : 'text-slate-400 font-medium'}>
+                    {otherUser?.isOnline !== false ? 'Online' : 'Offline'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

@@ -44,9 +44,11 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
   const handleAvatarClick = () => {
     openAvatarPreview({
-      name: user?.name || 'Nexus Operative',
-      avatarUrl: user?.avatarUrl || defaultAvatar,
+      name: user?.name || user?.displayName || 'Nexus Operative',
+      avatarUrl: user?.avatarUrl || user?.photoURL || defaultAvatar,
       username: user?.username || user?.email?.split('@')[0] || 'node',
+      phone: user?.phoneNumber || user?.phone,
+      phoneNumber: user?.phoneNumber || user?.phone,
       bio: user?.statusText || user?.bio || 'Available · Connected via NexusChat',
       statusText: 'Online · Verified Firebase Node',
       isOnline: true,

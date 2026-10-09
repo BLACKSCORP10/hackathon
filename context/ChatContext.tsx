@@ -56,11 +56,14 @@ interface ChatContextType {
   reactToMessage: (messageId: string, emoji: string) => Promise<void>;
   updateProfile: (profile: {
     name?: string;
+    displayName?: string;
     bio?: string;
     statusText?: string;
     avatarUrl?: string;
+    photoURL?: string;
     username?: string;
     phone?: string;
+    phoneNumber?: string;
   }) => Promise<void>;
 }
 
@@ -92,7 +95,7 @@ function parseRawTimestamp(ts: any): number {
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, updateProfileData } = useAuth();
   const [allChats, setAllChats] = useState<FirestoreChat[]>([]);
   const [allUsers, setAllUsers] = useState<FirestoreUser[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
@@ -201,11 +204,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               ? unreadMap[d.id]
               : data.unreadCount || 0;
 
+          const resolvedPhone =
+            otherUser?.phoneNumber ||
+            otherUser?.phone ||
+            data.phoneNumber ||
+            data.phone ||
+            '';
+
           return {
             id: d.id,
             ...data,
             name: chatName,
             avatarUrl: chatAvatar,
+            phone: resolvedPhone,
+            phoneNumber: resolvedPhone,
             unreadCount: calculatedUnread,
             isOnline: otherUser ? otherUser.isOnline : data.isOnline,
             lastMessageTime: formatFirestoreTimestamp(data.lastMessageTime || data.updatedAt),
@@ -250,11 +262,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const otherParticipantId = data.participants?.find((p: string) => p !== user?.uid);
         const otherUser = allUsers.find((u) => u.uid === otherParticipantId);
 
+        const resolvedPhone =
+          otherUser?.phoneNumber ||
+          otherUser?.phone ||
+          data.phoneNumber ||
+          data.phone ||
+          '';
+
         setActiveChat({
           id: snap.id,
           ...data,
-          name: data.type === 'group' ? data.name : otherUser?.name || data.name || 'Contact',
-          avatarUrl: data.type === 'group' ? data.avatarUrl : otherUser?.avatarUrl || data.avatarUrl,
+          name: data.type === 'group' ? data.name : otherUser?.name || otherUser?.displayName || data.name || 'Contact',
+          avatarUrl: data.type === 'group' ? data.avatarUrl : otherUser?.avatarUrl || otherUser?.photoURL || data.avatarUrl,
+          phone: resolvedPhone,
+          phoneNumber: resolvedPhone,
           isOnline: otherUser ? otherUser.isOnline : data.isOnline,
           lastMessageTime: formatFirestoreTimestamp(data.lastMessageTime),
         } as FirestoreChat);
@@ -265,11 +286,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const otherUser = allUsers.find((u) => u.uid === otherId);
 
         if (otherUser) {
+          const resolvedPhone = otherUser.phoneNumber || otherUser.phone || '';
           setActiveChat({
             id: activeChatId,
             type: 'direct',
-            name: otherUser.name,
-            avatarUrl: otherUser.avatarUrl,
+            name: otherUser.name || otherUser.displayName || 'Contact',
+            avatarUrl: otherUser.avatarUrl || otherUser.photoURL,
+            phone: resolvedPhone,
+            phoneNumber: resolvedPhone,
             roleBadge: otherUser.role || 'Operative',
             isOnline: otherUser.isOnline,
             participants: [user?.uid || '', otherUser.uid],
@@ -373,14 +397,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (profile: {
     name?: string;
+    displayName?: string;
     bio?: string;
     statusText?: string;
     avatarUrl?: string;
+    photoURL?: string;
     username?: string;
     phone?: string;
+    phoneNumber?: string;
   }) => {
-    if (!user) throw new Error('Must be authenticated');
+    if (!user?.uid) throw new Error('Must be authenticated');
     await updateFirestoreUserProfile(user.uid, profile);
+    await updateProfileData(profile);
   };
 
   const sendMessage = async (

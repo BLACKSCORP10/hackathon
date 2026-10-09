@@ -11,7 +11,7 @@ import {
   updateProfile,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider, githubProvider } from '@/lib/firebase';
 import { FirestoreUser, syncFirestoreUser, updateFirestoreUserStatus } from '@/lib/db';
 import { useRouter } from 'next/navigation';
@@ -27,7 +27,8 @@ interface AuthContextType {
     username: string;
     email: string;
     password: string;
-    phone?: string;
+    phone: string;
+    phoneNumber?: string;
     avatarUrl?: string;
   }) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -56,17 +57,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Set cookie for Next.js middleware & SSR support
         document.cookie = `nexus_auth_token=${currentFirebaseUser.uid}; path=/; max-age=604800; SameSite=Lax`;
 
-        // Sync initial profile to Firestore users collection
-        const synced = await syncFirestoreUser({
-          uid: currentFirebaseUser.uid,
-          email: currentFirebaseUser.email || '',
-          name: currentFirebaseUser.displayName || currentFirebaseUser.email?.split('@')[0] || 'Nexus Operative',
-          avatarUrl: currentFirebaseUser.photoURL || undefined,
-        });
-        setUser(synced);
+        const userDocRef = doc(db, 'users', currentFirebaseUser.uid);
+
+        // Populate user session state directly from the Firestore document
+        try {
+          const userSnap = await getDoc(userDocRef);
+          if (userSnap.exists()) {
+            setUser({ id: userSnap.id, ...userSnap.data() } as FirestoreUser);
+          } else {
+            const synced = await syncFirestoreUser({
+              uid: currentFirebaseUser.uid,
+              email: currentFirebaseUser.email || '',
+              name: currentFirebaseUser.displayName || currentFirebaseUser.email?.split('@')[0] || 'Nexus Operative',
+              avatarUrl: currentFirebaseUser.photoURL || undefined,
+              phoneNumber: currentFirebaseUser.phoneNumber || undefined,
+            });
+            setUser(synced);
+          }
+        } catch (fetchErr) {
+          console.warn('Error fetching Firestore user document:', fetchErr);
+        }
 
         // Real-time listener for user profile document
-        const userDocRef = doc(db, 'users', currentFirebaseUser.uid);
         unsubscribeFirestoreDoc = onSnapshot(userDocRef, (snap) => {
           if (snap.exists()) {
             setUser({ id: snap.id, ...snap.data() } as FirestoreUser);
@@ -106,9 +118,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string;
     email: string;
     password: string;
-    phone?: string;
+    phone: string;
+    phoneNumber?: string;
     avatarUrl?: string;
   }) => {
+    const rawPhone = (data.phoneNumber || data.phone || '').trim();
+    if (!rawPhone) {
+      throw new Error('Phone number is required to create an account.');
+    }
+
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -124,11 +142,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const synced = await syncFirestoreUser({
         uid: createdFirebaseUser.uid,
         name: data.name,
+        displayName: data.name,
         username: data.username,
         email: data.email,
-        phone: data.phone,
+        phone: rawPhone,
+        phoneNumber: rawPhone,
         avatarUrl: data.avatarUrl,
+        photoURL: data.avatarUrl,
         statusText: 'Available · Connected via NexusChat',
+        bio: 'Available · Connected via NexusChat',
         statusEmoji: '💬',
         role: 'Nexus Operative',
       });
@@ -235,12 +257,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfileData = async (updates: Partial<FirestoreUser>) => {
-    if (!user?.uid) return;
+    const currentUid = user?.uid || auth.currentUser?.uid;
+    if (!currentUid) return;
+
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, { ...updates, updatedAt: serverTimestamp() }, { merge: true });
+      const userRef = doc(db, 'users', currentUid);
+
+      const resolvedPhotoURL = updates.photoURL || updates.avatarUrl;
+      const resolvedPhoneNumber = updates.phoneNumber || updates.phone;
+      const resolvedDisplayName = updates.displayName || updates.name;
+      const resolvedBio = updates.bio || updates.statusText;
+
+      const firestorePayload: any = {
+        ...updates,
+        updatedAt: serverTimestamp(),
+      };
+
+      if (resolvedPhotoURL !== undefined) {
+        firestorePayload.photoURL = resolvedPhotoURL;
+        firestorePayload.avatarUrl = resolvedPhotoURL;
+      }
+      if (resolvedPhoneNumber !== undefined) {
+        firestorePayload.phoneNumber = resolvedPhoneNumber;
+        firestorePayload.phone = resolvedPhoneNumber;
+      }
+      if (resolvedDisplayName !== undefined) {
+        firestorePayload.displayName = resolvedDisplayName;
+        firestorePayload.name = resolvedDisplayName;
+      }
+      if (resolvedBio !== undefined) {
+        firestorePayload.bio = resolvedBio;
+        firestorePayload.statusText = resolvedBio;
+      }
+
+      // 1. Immediately update the Firestore document at users/${user.uid}
+      try {
+        await updateDoc(userRef, firestorePayload);
+      } catch (updateErr) {
+        console.warn('updateDoc failed, falling back to setDoc merge:', updateErr);
+        await setDoc(userRef, firestorePayload, { merge: true });
+      }
+
+      // 2. Also sync the update with Firebase Auth state via updateProfile(auth.currentUser, { photoURL, displayName })
+      if (auth.currentUser) {
+        const authUpdates: { displayName?: string; photoURL?: string } = {};
+        if (resolvedDisplayName) authUpdates.displayName = resolvedDisplayName;
+        if (resolvedPhotoURL) authUpdates.photoURL = resolvedPhotoURL;
+        if (Object.keys(authUpdates).length > 0) {
+          await updateProfile(auth.currentUser, authUpdates);
+        }
+      }
+
+      // Optimistically update local state
+      setUser((prev) => (prev ? ({ ...prev, ...firestorePayload } as FirestoreUser) : null));
     } catch (e) {
-      console.error('Error updating profile data:', e);
+      console.error('Error updating profile data in AuthContext:', e);
       throw e;
     }
   };

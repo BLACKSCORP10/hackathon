@@ -12,6 +12,7 @@ export default function RegisterPage() {
 
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,8 +38,27 @@ export default function RegisterPage() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password || !name.trim()) {
-      setError('Please fill in your name, email, and password.');
+    if (!name.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+
+    const trimmedPhone = phoneNumber.trim();
+    const digitCount = trimmedPhone.replace(/\D/g, '').length;
+    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
+
+    if (!trimmedPhone) {
+      setError('Phone number is mandatory for registration.');
+      return;
+    }
+
+    if (!phoneRegex.test(trimmedPhone) || digitCount < 7) {
+      setError('Please enter a valid phone number with country/area code (e.g. +1 555-019-2834).');
+      return;
+    }
+
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
       return;
     }
 
@@ -51,6 +71,8 @@ export default function RegisterPage() {
         username: username.trim() || email.split('@')[0],
         email: email.trim(),
         password,
+        phone: trimmedPhone,
+        phoneNumber: trimmedPhone,
         avatarUrl: avatarPreview,
       });
       router.push('/dashboard');
@@ -193,6 +215,29 @@ export default function RegisterPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Phone Number Input (Mandatory) */}
+            <div className="flex flex-col gap-1 w-full">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-mono text-slate-400 uppercase tracking-wider">
+                  Phone Number <span className="text-cyan-400">*</span>
+                </label>
+                <span className="text-[10px] font-mono text-indigo-400">Required</span>
+              </div>
+              <div className="relative flex items-center">
+                <span className="material-symbols-outlined absolute left-3.5 text-slate-500 pointer-events-none text-lg">
+                  call
+                </span>
+                <input
+                  className="w-full bg-slate-950/80 text-white placeholder:text-slate-600 text-sm pl-10 pr-4 py-2.5 rounded-xl border border-white/10 focus:outline-none focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="+1 (555) 019-2834"
+                  type="tel"
+                  required
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
                 />
               </div>
             </div>

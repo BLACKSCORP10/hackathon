@@ -45,9 +45,11 @@ export default function SettingsPage() {
 
   const handleAvatarClick = () => {
     openAvatarPreview({
-      name: user?.name || 'Nexus Operative',
-      avatarUrl: user?.avatarUrl || defaultAvatar,
+      name: user?.name || user?.displayName || 'Nexus Operative',
+      avatarUrl: user?.avatarUrl || user?.photoURL || defaultAvatar,
       username: user?.username || user?.email?.split('@')[0] || 'node',
+      phone: user?.phoneNumber || user?.phone,
+      phoneNumber: user?.phoneNumber || user?.phone,
       bio: user?.statusText || user?.bio || 'Available · Connected via NexusChat',
       statusText: 'Online · Verified Firebase Node',
       isOnline: true,
@@ -98,7 +100,7 @@ export default function SettingsPage() {
                 <div className="w-16 h-16 rounded-full overflow-hidden p-0.5 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-lg group-hover:scale-105 transition-transform">
                   <img
                     className="w-full h-full rounded-full object-cover bg-slate-800"
-                    src={user?.avatarUrl || defaultAvatar}
+                    src={user?.avatarUrl || user?.photoURL || defaultAvatar}
                     alt={user?.name || 'User Profile'}
                   />
                 </div>
@@ -111,7 +113,7 @@ export default function SettingsPage() {
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className={`text-base font-bold truncate ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
-                    {user?.name || 'Nexus Operative'}
+                    {user?.name || user?.displayName || 'Nexus Operative'}
                   </span>
                   <span
                     className="material-symbols-outlined text-indigo-400 text-[18px]"
@@ -120,12 +122,20 @@ export default function SettingsPage() {
                     verified
                   </span>
                 </div>
-                <span className="text-xs text-indigo-400 font-mono">
-                  @{user?.username || user?.email?.split('@')[0] || 'node'}
-                </span>
-                <span className="text-xs text-slate-400 truncate mt-0.5">
-                  {user?.email || 'Authenticated Firebase Node'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-indigo-400 font-mono">
+                    @{user?.username || user?.email?.split('@')[0] || 'node'}
+                  </span>
+                  {(user?.phoneNumber || user?.phone) && (
+                    <>
+                      <span className="text-slate-600">•</span>
+                      <span className="text-xs text-cyan-400 font-mono font-medium flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-[13px]">call</span>
+                        <span>{user?.phoneNumber || user?.phone}</span>
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

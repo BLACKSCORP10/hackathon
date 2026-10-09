@@ -28,6 +28,7 @@ export interface FirestoreUser {
   username: string;
   email: string;
   phone?: string;
+  phoneNumber?: string;
   avatarUrl: string;
   photoURL?: string;
   statusText?: string;
@@ -77,6 +78,8 @@ export interface FirestoreChat {
   type: 'direct' | 'group';
   name: string;
   avatarUrl: string;
+  phone?: string;
+  phoneNumber?: string;
   tag?: string;
   roleBadge?: string;
   isVerified?: boolean;
@@ -171,20 +174,60 @@ export async function syncFirestoreUser(user: Partial<FirestoreUser> & { uid: st
   const defaultAvatar =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA';
 
+  if (existing.exists()) {
+    const d = existing.data();
+    const resolvedName = user.name || user.displayName || d.name || d.displayName || user.email?.split('@')[0] || 'Nexus Operative';
+    const resolvedAvatar = user.avatarUrl || user.photoURL || d.avatarUrl || d.photoURL || defaultAvatar;
+    const resolvedPhone = user.phone || user.phoneNumber || d.phone || d.phoneNumber || '';
+    const resolvedBio = user.bio || user.statusText || d.bio || d.statusText || 'Available · Connected via NexusChat';
+
+    const userData: FirestoreUser = {
+      id: user.uid,
+      uid: user.uid,
+      name: resolvedName,
+      displayName: resolvedName,
+      username: user.username || d.username || user.email?.split('@')[0] || `user_${user.uid.slice(0, 6)}`,
+      email: user.email || d.email || '',
+      phone: resolvedPhone,
+      phoneNumber: resolvedPhone,
+      avatarUrl: resolvedAvatar,
+      photoURL: resolvedAvatar,
+      statusText: resolvedBio,
+      bio: resolvedBio,
+      statusEmoji: user.statusEmoji || d.statusEmoji || '💬',
+      isOnline: true,
+      role: user.role || d.role || 'Nexus Operative',
+      lastSeen: serverTimestamp(),
+      createdAt: d.createdAt || serverTimestamp(),
+    };
+
+    await setDoc(userRef, userData, { merge: true });
+    return userData;
+  }
+
+  const initialName = user.name || user.displayName || user.email?.split('@')[0] || 'Nexus Operative';
+  const initialAvatar = user.avatarUrl || user.photoURL || defaultAvatar;
+  const initialPhone = user.phone || user.phoneNumber || '';
+  const initialBio = user.bio || user.statusText || 'Available · Connected via NexusChat';
+
   const userData: FirestoreUser = {
     id: user.uid,
     uid: user.uid,
-    name: user.name || user.email?.split('@')[0] || 'Nexus Operative',
+    name: initialName,
+    displayName: initialName,
     username: user.username || user.email?.split('@')[0] || `user_${user.uid.slice(0, 6)}`,
     email: user.email || '',
-    phone: user.phone || '',
-    avatarUrl: user.avatarUrl || defaultAvatar,
-    statusText: user.statusText || 'Available · Connected via NexusChat',
+    phone: initialPhone,
+    phoneNumber: initialPhone,
+    avatarUrl: initialAvatar,
+    photoURL: initialAvatar,
+    statusText: initialBio,
+    bio: initialBio,
     statusEmoji: user.statusEmoji || '💬',
     isOnline: true,
     role: user.role || 'Nexus Operative',
     lastSeen: serverTimestamp(),
-    createdAt: existing.exists() ? existing.data()?.createdAt : serverTimestamp(),
+    createdAt: serverTimestamp(),
   };
 
   await setDoc(userRef, userData, { merge: true });
@@ -213,15 +256,24 @@ export async function createOrGetDirectChat(currentUser: FirestoreUser, targetUs
   const chatRef = doc(db, 'chats', chatId);
   const chatSnap = await getDoc(chatRef);
 
+  const targetPhone = targetUser.phoneNumber || targetUser.phone || '';
+
   if (chatSnap.exists()) {
-    return { id: chatSnap.id, ...chatSnap.data() } as FirestoreChat;
+    const existingChat = { id: chatSnap.id, ...chatSnap.data() } as FirestoreChat;
+    if (!existingChat.phoneNumber && targetPhone) {
+      existingChat.phoneNumber = targetPhone;
+      existingChat.phone = targetPhone;
+    }
+    return existingChat;
   }
 
   const newChat: FirestoreChat = {
     id: chatId,
     type: 'direct',
-    name: targetUser.name,
-    avatarUrl: targetUser.avatarUrl,
+    name: targetUser.name || targetUser.displayName || 'Direct Message',
+    avatarUrl: targetUser.avatarUrl || targetUser.photoURL || '',
+    phone: targetPhone,
+    phoneNumber: targetPhone,
     roleBadge: targetUser.role || 'Operative',
     isVerified: true,
     isOnline: targetUser.isOnline,
@@ -382,23 +434,27 @@ export async function updateFirestoreUserProfile(
     photoURL?: string;
     username?: string;
     phone?: string;
+    phoneNumber?: string;
   }
 ): Promise<void> {
+  const updates: any = { ...profile, lastSeen: serverTimestamp() };
+  if (profile.bio && !profile.statusText) updates.statusText = profile.bio;
+  if (profile.statusText && !profile.bio) updates.bio = profile.statusText;
+  if (profile.name && !profile.displayName) updates.displayName = profile.name;
+  if (profile.displayName && !profile.name) updates.name = profile.displayName;
+  if (profile.avatarUrl && !profile.photoURL) updates.photoURL = profile.avatarUrl;
+  if (profile.photoURL && !profile.avatarUrl) updates.avatarUrl = profile.photoURL;
+  if (profile.phone && !profile.phoneNumber) updates.phoneNumber = profile.phone;
+  if (profile.phoneNumber && !profile.phone) updates.phone = profile.phoneNumber;
+
   try {
     const userRef = doc(db, 'users', userId);
-    const updates: any = { ...profile, lastSeen: serverTimestamp() };
-    if (profile.bio && !profile.statusText) updates.statusText = profile.bio;
-    if (profile.name && !profile.displayName) updates.displayName = profile.name;
-    if (profile.avatarUrl && !profile.photoURL) updates.photoURL = profile.avatarUrl;
-    if (profile.photoURL && !profile.avatarUrl) updates.avatarUrl = profile.photoURL;
-    if (profile.displayName && !profile.name) updates.name = profile.displayName;
-
     await updateDoc(userRef, updates);
   } catch (error) {
     console.warn('updateDoc failed, attempting setDoc merge fallback:', error);
     try {
       const userRef = doc(db, 'users', userId);
-      await setDoc(userRef, { ...profile, lastSeen: serverTimestamp() }, { merge: true });
+      await setDoc(userRef, updates, { merge: true });
     } catch (retryErr) {
       console.error('Error updating user profile in Firestore:', retryErr);
       throw retryErr;

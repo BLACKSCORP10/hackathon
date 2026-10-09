@@ -5,7 +5,12 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 export interface AvatarPreviewData {
   name: string;
   avatarUrl: string;
+  displayName?: string;
+  photoURL?: string;
   username?: string;
+  phone?: string;
+  phoneNumber?: string;
+  email?: string;
   bio?: string;
   role?: string;
   statusText?: string;

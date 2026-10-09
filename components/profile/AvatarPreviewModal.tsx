@@ -66,7 +66,7 @@ export const AvatarPreviewModal: React.FC = () => {
         </div>
 
         {/* User Info Details */}
-        <div className="w-full flex flex-col items-center text-center gap-1.5">
+        <div className="w-full flex flex-col items-center text-center gap-2">
           <div className="flex items-center gap-1.5 justify-center">
             <h3 className="text-lg font-bold text-white tracking-tight">{previewData.name}</h3>
             <span
@@ -76,6 +76,19 @@ export const AvatarPreviewModal: React.FC = () => {
               verified
             </span>
           </div>
+
+          {/* Registered Phone Number Pill (Prominent Display) */}
+          {(previewData.phoneNumber || previewData.phone) ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-cyan-300 font-mono text-xs shadow-sm">
+              <span className="material-symbols-outlined text-[14px] text-cyan-400">call</span>
+              <span className="font-semibold">{previewData.phoneNumber || previewData.phone}</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800/80 border border-white/5 text-slate-400 font-mono text-[11px]">
+              <span className="material-symbols-outlined text-[13px] text-slate-500">lock</span>
+              <span>Encrypted Node</span>
+            </div>
+          )}
 
           {previewData.username && (
             <button
@@ -92,7 +105,7 @@ export const AvatarPreviewModal: React.FC = () => {
           )}
 
           {/* Bio / Status Quote Box */}
-          <div className="w-full mt-2 bg-slate-950/60 rounded-2xl p-3.5 border border-white/10 text-left flex flex-col gap-1 shadow-inner">
+          <div className="w-full mt-1 bg-slate-950/60 rounded-2xl p-3.5 border border-white/10 text-left flex flex-col gap-1 shadow-inner">
             <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <span className="material-symbols-outlined text-xs text-indigo-400">format_quote</span>
               Bio & Operative Status

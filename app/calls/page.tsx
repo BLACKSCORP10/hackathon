@@ -139,6 +139,8 @@ export default function CallLogsPage() {
             const targetName = log.callerId === user?.uid ? log.receiverName : log.callerName;
             const targetAvatar = log.callerId === user?.uid ? log.receiverAvatar : log.callerAvatar;
             const targetId = log.callerId === user?.uid ? log.receiverId : log.callerId;
+            const matchedUser = users.find((u) => u.uid === targetId);
+            const targetPhone = matchedUser?.phoneNumber || matchedUser?.phone || '';
 
             return (
               <div
@@ -153,11 +155,14 @@ export default function CallLogsPage() {
                         name: targetName,
                         avatarUrl:
                           targetAvatar ||
+                          matchedUser?.avatarUrl ||
                           'https://lh3.googleusercontent.com/aida-public/AB6AXuBDmyBN5eU3P6Db79C6OvqxLwjGYPnL_j1bLCf1PSowDZQzYUqnMS9hLlcRJa-jSqVB0IMKREmx2xvZBUbo6-1KJv-4LAqHQC8kn9do6g4hwhkQVY-E7tSRb0ipQV1O1P5nhK872-Ir4eAWtch96NIhKmwh9byJj8aTF5uwIRIHFBol8cWq9bfpaYYQmWOgcT0sIeKOINsdtQstUSG_8Z8KP-VcryFeKFt-d7-e1n4Smya4lt3HFPevoA',
-                        username: targetName.toLowerCase().replace(/\s+/g, '_'),
-                        bio: 'Encrypted WebRTC call peer · Verified node',
-                        statusText: 'Call Log Record',
-                        isOnline: true,
+                        username: matchedUser?.username || targetName.toLowerCase().replace(/\s+/g, '_'),
+                        phone: targetPhone,
+                        phoneNumber: targetPhone,
+                        bio: matchedUser?.bio || matchedUser?.statusText || 'Encrypted WebRTC call peer · Verified node',
+                        statusText: matchedUser?.isOnline ? 'Online · Call Node' : 'Offline',
+                        isOnline: matchedUser ? matchedUser.isOnline : true,
                       })
                     }
                     title="View high-resolution profile picture"

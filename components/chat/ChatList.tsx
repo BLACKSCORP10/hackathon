@@ -152,8 +152,10 @@ export const ChatList: React.FC = () => {
                       e.stopPropagation();
                       openAvatarPreview({
                         name: u.name,
-                        avatarUrl: u.avatarUrl,
+                        avatarUrl: u.avatarUrl || u.photoURL || '',
                         username: u.username,
+                        phone: u.phoneNumber || u.phone,
+                        phoneNumber: u.phoneNumber || u.phone,
                         bio: u.statusText || u.bio || 'Encrypted Firestore Node · AES-256 Enabled',
                         statusText: u.isOnline ? 'Online' : 'Offline',
                         isOnline: u.isOnline,
@@ -228,6 +230,8 @@ export const ChatList: React.FC = () => {
                         chat.avatarUrl ||
                         'https://lh3.googleusercontent.com/aida-public/AB6AXuCxCD8sPJkUytj0srEpy1ECOBUonoJ3PqNZPSrXiWTxt6SpkHPejcnHm16ly4E-Q9QOMFTrJjX5pZrRtke9jamOI5jlojAk9WXPez2DTqbG902Vab6czWQ0rvL4ODMXAkXx_7YA9LpEb11NHxeGQhNhfGSl7UEJ7bjFv-i1zD8IwwUjVQIBPo2zISSTTcMZzb3vl0XnarT7nys0q6dw16LInipxkxwCv-gFBMT1pl76pDOLgBj8Z_mkCw',
                       username: chat.name.toLowerCase().replace(/\s+/g, '_'),
+                      phone: chat.phoneNumber || chat.phone,
+                      phoneNumber: chat.phoneNumber || chat.phone,
                       bio: chat.roleBadge ? `Role: ${chat.roleBadge} · Verified E2EE Signal Node` : 'Direct peer encrypted conversation channel.',
                       statusText: chat.isOnline ? 'Online · Signal Active' : 'Offline',
                       isOnline: chat.isOnline,
@@ -336,6 +340,8 @@ export const ChatList: React.FC = () => {
                               u.avatarUrl ||
                               'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA',
                             username: u.username,
+                            phone: u.phoneNumber || u.phone,
+                            phoneNumber: u.phoneNumber || u.phone,
                             bio: u.statusText || u.bio || 'Encrypted Firestore Node · AES-256 Enabled',
                             statusText: u.isOnline ? 'Online' : 'Offline',
                             isOnline: u.isOnline,

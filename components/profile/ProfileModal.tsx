@@ -12,13 +12,14 @@ interface ProfileModalProps {
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, updateProfileData } = useAuth();
   const { updateProfile } = useChat();
   const { openAvatarPreview } = useAvatarPreview();
 
-  const [name, setName] = useState(user?.name || '');
+  const [name, setName] = useState(user?.name || user?.displayName || '');
+  const [phone, setPhone] = useState(user?.phoneNumber || user?.phone || '');
   const [bio, setBio] = useState(user?.statusText || user?.bio || 'Available · Connected via NexusChat');
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || user?.photoURL || '');
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -51,12 +52,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
     setIsSaving(true);
     try {
-      await updateProfile({
+      const profileUpdates = {
         name: name.trim(),
+        displayName: name.trim(),
+        phone: phone.trim(),
+        phoneNumber: phone.trim(),
         bio: bio.trim(),
         statusText: bio.trim(),
         avatarUrl,
-      });
+        photoURL: avatarUrl,
+      };
+
+      // Immediately sync with Firestore users/${user.uid} and Firebase Auth state
+      await updateProfileData(profileUpdates);
+      await updateProfile(profileUpdates);
+
       setSuccessMsg(true);
       setTimeout(() => {
         setSuccessMsg(false);
@@ -128,13 +138,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 type="button"
                 onClick={() =>
                   openAvatarPreview({
-                    name: name || user?.name || 'Operative',
+                    name: name || user?.name || user?.displayName || 'Operative',
                     avatarUrl:
                       avatarUrl ||
                       user?.avatarUrl ||
+                      user?.photoURL ||
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuBfpDzwR2xsNv-nsDiy8QJclKg9hzaA5jd1kdt99vR7jPAQs7lZv5vgSDaWYMhGBFv8Ei5ezRYpDb_wAr3lxlYpw8f1qiS29oJ2P6AuVne7dMFwLILfdkLxBonarXmqdT-fgwxrcciUyl8XN29J9Qzkg1NNk2FlFeMbplyopjX2HVtWSHqczvwBI-yU2C6Lqtz9vj-edQeNxEaj3poxvGbhIAuyi2eO9XjNTiCQFGtefBCjPKttKXgFsA',
                     username: user?.username || 'node',
-                    bio: bio || user?.statusText || 'Available · Connected via NexusChat',
+                    phone: phone || user?.phoneNumber || user?.phone,
+                    phoneNumber: phone || user?.phoneNumber || user?.phone,
+                    bio: bio || user?.statusText || user?.bio || 'Available · Connected via NexusChat',
                     statusText: 'Online · Verified Firebase Node',
                     isOnline: true,
                   })
@@ -158,6 +171,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               placeholder="Your Operative Name"
               className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
             />
+          </div>
+
+          {/* Phone Number Field */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-mono text-slate-400 uppercase tracking-wider">
+              Phone Number <span className="text-cyan-400">*</span>
+            </label>
+            <div className="relative flex items-center">
+              <span className="material-symbols-outlined absolute left-3.5 text-slate-500 pointer-events-none text-base">
+                call
+              </span>
+              <input
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+1 (555) 019-2834"
+                className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-white font-mono placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+            </div>
           </div>
 
           {/* Bio / Status Text */}
