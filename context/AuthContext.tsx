@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   // Listen to Firebase Auth state changes
+  // Listen to Firebase Auth state changes & track online presence
   useEffect(() => {
     let unsubscribeFirestoreDoc: (() => void) | null = null;
 
@@ -59,7 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const userDocRef = doc(db, 'users', currentFirebaseUser.uid);
 
-        // Populate user session state directly from the Firestore document
+        // Update online status to true in Firestore
+        try {
+          await updateFirestoreUserStatus(currentFirebaseUser.uid, true);
+        } catch (e) {
+          console.warn('Failed to update online status:', e);
+        }
+
+        // Fetch initial user document state
         try {
           const userSnap = await getDoc(userDocRef);
           if (userSnap.exists()) {
@@ -78,20 +86,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn('Error fetching Firestore user document:', fetchErr);
         }
 
-        // Real-time listener for user profile document
+        // Listen for real-time changes to the user document
         unsubscribeFirestoreDoc = onSnapshot(userDocRef, (snap) => {
           if (snap.exists()) {
             setUser({ id: snap.id, ...snap.data() } as FirestoreUser);
           }
         });
       } else {
-        // Clear cookie
+        // Clear cookie when logged out
         document.cookie = 'nexus_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-        setUser(null);
-        if (unsubscribeFirestoreDoc) {
-          unsubscribeFirestoreDoc();
+
+        // Update user status to offline
+        if (firebaseUser?.uid) {
+          await updateFirestoreUserStatus(firebaseUser.uid, false);
         }
+
+        setUser(null);
       }
+
       setIsLoading(false);
     });
 
@@ -101,6 +113,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Handle tab close / unload event to mark user offline
+  useEffect(() => {
+    if (!firebaseUser?.uid) return;
+
+    const handleBeforeUnload = () => {
+      updateFirestoreUserStatus(firebaseUser.uid, false);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [firebaseUser?.uid]);
   const login = async (email: string, pass: string) => {
     setIsLoading(true);
     try {
