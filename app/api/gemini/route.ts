@@ -44,22 +44,21 @@ export async function POST(req: NextRequest) {
     const contextMessages = Array.isArray(roomContext)
       ? roomContext
       : Array.isArray(history)
-      ? history
-      : typeof roomContext === 'string'
-      ? [{ content: roomContext }]
-      : [];
+        ? history
+        : typeof roomContext === 'string'
+          ? [{ content: roomContext }]
+          : [];
 
     let aiResponseText = '';
     const primaryModel = 'gemini-2.5-flash';
-    const fallbackModel = 'gemini-1.5-flash';
+    const fallbackModel = 'gemini-2.5-pro';
 
     let contentToSend = userQuery;
     if (isSummarize) {
       const formattedTranscript = contextMessages
         .map(
           (m: any) =>
-            `[${m.senderName || m.sender || 'User'}]: ${
-              m.content || m.text || ''
+            `[${m.senderName || m.sender || 'User'}]: ${m.content || m.text || ''
             }`
         )
         .join('\n');
@@ -87,8 +86,8 @@ Format the response with:
         contents: contentToSend,
         config: !isSummarize
           ? {
-              systemInstruction,
-            }
+            systemInstruction,
+          }
           : undefined,
       });
 
