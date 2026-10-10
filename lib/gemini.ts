@@ -37,8 +37,8 @@ export async function generateGeminiText(
     };
   }
 
-  const primaryModel = options.model || 'gemini-2.5-flash';
-  const fallbackModel = options.fallbackModel || 'gemini-1.5-flash';
+  const primaryModel = options.model || 'gemini-1.5-flash';
+  const fallbackModel = options.fallbackModel || 'gemini-1.5-pro';
 
   const userQuery = (prompt || '').trim();
   const isSummarize =
