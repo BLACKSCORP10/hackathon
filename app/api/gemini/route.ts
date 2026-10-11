@@ -3,77 +3,66 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const {
-      prompt = '',
-      roomContext,
-      history = [],
-      mode = 'chat',
-      roomName = 'Nexus Channel',
-    } = body;
+    const { prompt = '', roomContext, history = [], mode = 'chat', roomName = 'Nexus Channel' } = body;
 
     const userQuery = (typeof prompt === 'string' ? prompt : '').trim();
     const isSummarize = mode === 'summarize' || userQuery.toLowerCase().includes('summarize');
 
-    const apiKey =
-      process.env.GEMINI_API_KEY ||
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      process.env.GOOGLE_GENAI_API_KEY;
-
-    let aiResponseText = '';
-
-    // Attempt direct Gemini REST call if API Key exists
-    if (apiKey) {
-      const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
-      for (const model of modelsToTry) {
-        try {
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: userQuery || 'Hello Gemini' }] }],
-            }),
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              aiResponseText = text;
-              break;
-            }
-          }
-        } catch (e) {
-          console.warn(`Attempt failed for model ${model}`);
-        }
-      }
+    if (!userQuery && !isSummarize) {
+      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    if (!aiResponseText) {
-      if (isSummarize) {
-        aiResponseText = `📌 **NexusChat Summary for "${roomName}"**\n\n` +
-          `• **Key Topics:** Discussion around workspace integration, real-time sync, and feature rollouts.\n` +
-          `• **Action Items:** Finalizing deployment and confirming user status triggers.\n` +
-          `• **Conclusion:** Active engagement across team members with high collaboration scores.`;
-      } else {
-        const queryLower = userQuery.toLowerCase();
-        if (queryLower.includes('hello') || queryLower.includes('hi')) {
-          aiResponseText = "Hello! I am **Gemini AI**, your NexusChat assistant. How can I assist you with your project today?";
-        } else if (queryLower.includes('help')) {
-          aiResponseText = "I can help summarize team chats, analyze workflow metrics, answer technical questions, or assist with project tasks!";
-        } else {
-          aiResponseText = `I have processed your query regarding **"${userQuery || 'Nexus Assistant'}"**.\n\n` +
-            `• **Status:** System operational and synchronized with NexusChat.\n` +
-            `• **Insight:** All active team members and real-time channels are online and ready for collaboration.`;
-        }
-      }
+    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json({ text: 'Error: GEMINI_API_KEY is missing on server.' }, { status: 500 });
     }
 
-    return NextResponse.json({ text: aiResponseText });
+    const contextMessages = Array.isArray(roomContext)
+      ? roomContext
+      : Array.isArray(history)
+        ? history
+        : [];
+
+    let contentToSend = userQuery;
+    if (isSummarize) {
+      const formattedTranscript = contextMessages
+        .map((m: any) => `[${m.senderName || m.sender || 'User'}]: ${m.content || m.text || ''}`)
+        .join('\n');
+
+      contentToSend = `You are Gemini AI in NexusChat. Summarize the following chat messages from "${roomName}":\n\n${formattedTranscript}\n\nInclude: 📌 Highlights, 🎯 Action Items, 💡 Conclusion.`;
+    }
+
+    // Direct REST API Call to Google Gemini 2.5 Flash
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: contentToSend }] }],
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Gemini Google API Error Response:', data);
+      return NextResponse.json({
+        text: `Gemini API Error: ${data?.error?.message || 'Failed to connect to Google AI'}`,
+      });
+    }
+
+    const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedText) {
+      return NextResponse.json({ text: 'Gemini returned an empty response.' });
+    }
+
+    return NextResponse.json({ text: generatedText });
   } catch (error: any) {
-
-    return NextResponse.json({
-      text: "I am Gemini AI, connected and operational within NexusChat. How can I help with your channel today?"
-    });
+    console.error('Error in /api/gemini route:', error);
+    return NextResponse.json({ text: `Server Error: ${error?.message || 'Processing failed'}` }, { status: 500 });
   }
 }
