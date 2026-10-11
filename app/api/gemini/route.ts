@@ -33,9 +33,9 @@ export async function POST(req: NextRequest) {
       contentToSend = `You are Gemini AI in NexusChat. Summarize the following chat messages from "${roomName}":\n\n${formattedTranscript}\n\nInclude: 📌 Highlights, 🎯 Action Items, 💡 Conclusion.`;
     }
 
-    // Direct REST API Call to Google Gemini 2.5 Flash
+    // Direct REST Call targeting gemini-3.8-flash
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Gemini Google API Error Response:', data);
+      console.error('Gemini API Error:', data);
       return NextResponse.json({
         text: `Gemini API Error: ${data?.error?.message || 'Failed to connect to Google AI'}`,
       });
