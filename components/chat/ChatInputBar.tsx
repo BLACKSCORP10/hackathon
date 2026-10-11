@@ -115,8 +115,8 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSendMessage }) => 
       const mimeType = MediaRecorder.isTypeSupported('audio/webm')
         ? 'audio/webm'
         : MediaRecorder.isTypeSupported('audio/mp4')
-        ? 'audio/mp4'
-        : '';
+          ? 'audio/mp4'
+          : '';
 
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
@@ -368,11 +368,9 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSendMessage }) => 
             className="px-2.5 py-1 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 font-mono text-xs flex items-center gap-1 transition-all active:scale-95 shrink-0"
             title="Ask Gemini AI"
           >
-            <img
-              src="https://cdn.worldvectorlogo.com/logos/google-gemini-icon.svg"
-              alt="Gemini"
-              className="w-3.5 h-3.5 object-contain"
-            />
+            <svg className="w-4 h-4 text-indigo-400 fill-current shrink-0" viewBox="0 0 24 24">
+              <path d="M12 0C12 6.62742 17.3726 12 24 12C17.3726 12 12 17.3726 12 24C12 17.3726 6.62742 12 0 12C6.62742 12 12 6.62742 12 0Z" />
+            </svg>
             <span className="hidden sm:inline font-semibold">@gemini</span>
           </button>
 
@@ -381,11 +379,10 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSendMessage }) => 
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             aria-label="Open emoji drawer"
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors active:scale-95 shrink-0 ${
-              showEmojiPicker
-                ? 'text-cyan-400 bg-slate-900'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors active:scale-95 shrink-0 ${showEmojiPicker
+              ? 'text-cyan-400 bg-slate-900'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
           >
             <span className="material-symbols-outlined text-[22px]">mood</span>
           </button>
